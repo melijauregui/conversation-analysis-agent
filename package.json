@@ -10,9 +10,16 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@langchain/langgraph": "^1.4.14",
-    "@langchain/openai": "^1.5.11",
-    "@langchain/textsplitters": "^1.0.1",
-    "cheerio": "^1.2.0"
+    "js-tiktoken": "1.0.21",
+    "zod": "4.5.4"
+  },
+  "scripts": {
+    "data:profile": "bun scripts/phase0.ts profile",
+    "eval:prepare": "bun scripts/phase0.ts prepare",
+    "eval:validate": "bun scripts/phase0.ts validate",
+    "eval:score": "bun scripts/phase0.ts evaluate",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "eval:packets": "bun scripts/phase0.ts packets"
   }
 }

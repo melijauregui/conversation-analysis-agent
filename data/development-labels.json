@@ -1,0 +1,772 @@
+{
+  "labels": [
+    {
+      "conversation_id": "conv_04681",
+      "resolution": "resuelto",
+      "frustration": "indeterminado",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": [
+        "Configurar una passkey",
+        "Consultar cómo exportar datos"
+      ],
+      "notes": "M9 confirma que la passkey funciona y M11 responde cómo exportar. «Vengo probando hace rato» (M1) deja ambigua la frustración.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_01179",
+      "resolution": "indeterminado",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "alucinacion_o_mala_respuesta",
+      "contact_reasons": ["Cambiar la fecha de facturación"],
+      "notes": "M10 afirma cambiar a una fecha que el usuario no especificó. M11 no aclara qué fecha quedó ni cómo se comprobó el cambio.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_03414",
+      "resolution": "resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Configurar una passkey"],
+      "notes": "M4 confirma «Perfecto, quedó» tras la indicación pertinente. Se repite el asistente (M2–M3), no el usuario.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_03951",
+      "resolution": "no_resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": [
+        "Resolver el consumo elevado de memoria de la aplicación"
+      ],
+      "notes": "El problema queda derivado (M4–M5). M3 enumera intentos previos una sola vez: no es repetición del usuario.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_04038",
+      "resolution": "no_resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Revisar un monto cobrado incorrectamente"],
+      "notes": "M4 deriva el reclamo y M5 acepta enviarlo. La corrección del cobro sigue pendiente.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_01090",
+      "resolution": "no_resuelto",
+      "frustration": "presente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Entender un cobro parcial"],
+      "notes": "La explicación queda pendiente en M4. El usuario abandona con «Olvidate, busco otra opción» (M5), señal de frustración.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_02625",
+      "resolution": "no_resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Activar la autenticación biométrica"],
+      "notes": "M4–M5 dejan la activación pendiente de un especialista, sin confirmación de funcionamiento.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_00056",
+      "resolution": "parcialmente_resuelto",
+      "frustration": "presente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": [
+        "Obtener un comprobante de pago",
+        "Consultar cómo exportar datos"
+      ],
+      "notes": "El comprobante no se obtiene (M4–M5); «No tengo tiempo. Chau» expresa impaciencia. Exportación sí recibe instrucciones claras (M6–M8).",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_04118",
+      "resolution": "no_resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Conocer los métodos de pago aceptados"],
+      "notes": "La pregunta no recibe una lista de métodos; se deriva a otro canal en M4–M5.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_03374",
+      "resolution": "resuelto",
+      "frustration": "presente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Resolver la lentitud de la aplicación"],
+      "notes": "«Tarda una eternidad» (M1) expresa impaciencia por la lentitud. M5 confirma que funcionó después de reiniciar.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_00742",
+      "resolution": "resuelto",
+      "frustration": "presente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Consultar la baja de una funcionalidad adicional"],
+      "notes": "M8 responde cuándo se cancela el add-on y M9 expresa éxito. El pedido inicial pregunta por la posibilidad de baja. M1 expresa cansancio.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_04355",
+      "resolution": "resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": [
+        "Usar la aplicación en una versión antigua del sistema operativo"
+      ],
+      "notes": "M4 confirma éxito tras la alternativa de versión lite. Las repeticiones son del asistente (M2–M3).",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_04738",
+      "resolution": "resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": [
+        "Resolver un cobro duplicado",
+        "Consultar cómo exportar datos"
+      ],
+      "notes": "El asistente aprueba y procesa el reembolso del cobro duplicado y el usuario expresa conformidad (M5 y M8). Exportación queda respondida en M7.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_01284",
+      "resolution": "indeterminado",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": [
+        "Corregir un monto cobrado incorrectamente",
+        "Consultar cómo exportar datos"
+      ],
+      "notes": "Exportación respondida en M13. «Ahora entró» (M11) confirma acceso, no el ajuste o la acreditación de M10; ese resultado es incierto.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_00351",
+      "resolution": "resuelto",
+      "frustration": "presente",
+      "repetition": "ausente",
+      "assistant_quality": "alucinacion_o_mala_respuesta",
+      "contact_reasons": [
+        "Solicitar un reembolso parcial",
+        "Consultar disponibilidad de la aplicación para Android"
+      ],
+      "notes": "Android se responde en M11. El asistente aprueba el reembolso proporcional y el usuario manifiesta conformidad en M7 («Joya, ya está»). M1 expresa enojo.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_03130",
+      "resolution": "no_resuelto",
+      "frustration": "presente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Resolver errores de conexión constantes"],
+      "notes": "M4 deja la investigación pendiente y el usuario abandona con impaciencia en M5.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_02594",
+      "resolution": "indeterminado",
+      "frustration": "presente",
+      "repetition": "presente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Cancelar la suscripción de inmediato"],
+      "notes": "M14 pide confirmar la baja, pero M15 solo menciona reiniciar: cancelación incierta. «Te lo mande arriba» (M13) remite al email de M3, solicitado otra vez en M12, y expresa impaciencia.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_01704",
+      "resolution": "resuelto",
+      "frustration": "presente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": [
+        "Consultar descuentos para organizaciones sin fines de lucro"
+      ],
+      "notes": "M8 responde la pregunta sobre descuentos y M9 acepta. M1 expresa cansancio. No se verifica externamente el porcentaje informado.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_01319",
+      "resolution": "no_resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Activar la autenticación biométrica"],
+      "notes": "El caso se escala en M4 y el usuario acepta en M5; sigue pendiente.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_03290",
+      "resolution": "resuelto",
+      "frustration": "presente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": [
+        "Solicitar un reembolso por un cobro posterior al período de prueba"
+      ],
+      "notes": "El asistente aprueba la devolución del cobro post-trial como cortesía y el usuario manifiesta conformidad («Genial, anduvo» en M5). M1 expresa enojo.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_03314",
+      "resolution": "resuelto",
+      "frustration": "indeterminado",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Resolver la aparición reiterada del captcha"],
+      "notes": "M7 confirma funcionamiento. «Infinitas veces» (M1) puede ser descripción hiperbólica de frecuencia o impaciencia; no hay otra señal emocional clara.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_01159",
+      "resolution": "resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": [
+        "Consultar si el precio es por usuario",
+        "Consultar cómo exportar datos"
+      ],
+      "notes": "La modalidad de precio se explica en M4 y la ruta de exportación en M7. Son consultas informativas respondidas.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_02039",
+      "resolution": "resuelto",
+      "frustration": "ausente",
+      "repetition": "presente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Resolver un error de conexión al servidor"],
+      "notes": "M9 confirma éxito. El usuario repite cuándo comenzó: «desde ayer» en M3 y M5, tras la pregunta redundante de M4.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_03792",
+      "resolution": "resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": [
+        "Consultar si el precio es fijo o por usuario",
+        "Consultar cómo exportar datos"
+      ],
+      "notes": "M4 responde la modalidad de precio y M7 explica exportación. Ambos pedidos informativos quedan contestados.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_01130",
+      "resolution": "no_resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": [
+        "Consultar devolución por meses pagados y no utilizados"
+      ],
+      "notes": "M4 indica que no puede avanzar y lo deriva; el usuario acepta en M5. El pedido queda pendiente.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_03873",
+      "resolution": "no_resuelto",
+      "frustration": "presente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": [
+        "Resolver el consumo de batería desde la instalación de la aplicación"
+      ],
+      "notes": "M4 pide intentar más tarde y M5 abandona con «No tengo tiempo. Chau», señal de impaciencia.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_01804",
+      "resolution": "no_resuelto",
+      "frustration": "presente",
+      "repetition": "ausente",
+      "assistant_quality": "alucinacion_o_mala_respuesta",
+      "contact_reasons": ["Consultar facturación en dólares"],
+      "notes": "M2 menciona una restricción de moneda, pero la necesidad no se satisface y el usuario termina con «Me rindo» (M8). Hay frustración en M6 y M8; no repite datos.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_00539",
+      "resolution": "no_resuelto",
+      "frustration": "presente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": [
+        "Solicitar un reembolso por un servicio no utilizado"
+      ],
+      "notes": "A la promesa de reembolso (M2) sigue una revisión pendiente (M3) y abandono (M4). El desenlace indica que no se resolvió; «Olvidate» expresa frustración.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_01907",
+      "resolution": "parcialmente_resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "alucinacion_o_mala_respuesta",
+      "contact_reasons": [
+        "Cambiar permisos de un usuario",
+        "Consultar cómo invitar personas al equipo"
+      ],
+      "notes": "El cambio de permisos acaba derivado (M3–M4), pese a la afirmación previa del asistente. La invitación al equipo se responde en M6.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_03545",
+      "resolution": "resuelto",
+      "frustration": "presente",
+      "repetition": "ausente",
+      "assistant_quality": "alucinacion_o_mala_respuesta",
+      "contact_reasons": ["Cancelar el plan anual"],
+      "notes": "M5 declara que se solucionó. M1 expresa cansancio. Se registra el resultado reportado, sin validar la recomendación de borrar y recrear la cuenta.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_02350",
+      "resolution": "resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Cancelar inmediatamente sin esperar a fin de mes"],
+      "notes": "El asistente ofrece la baja inmediata perdiendo los días restantes y el usuario confirma conformidad («Perfecto, quedó» en M4).",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_02829",
+      "resolution": "resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": [
+        "Obtener la devolución de uno de dos cobros duplicados"
+      ],
+      "notes": "El asistente aprueba la devolución de uno de los cobros duplicados y el usuario confirma resolución y conformidad en M5 y M7.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_03850",
+      "resolution": "resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "alucinacion_o_mala_respuesta",
+      "contact_reasons": ["Consultar el estado de una orden"],
+      "notes": "M2 informa que está en camino: responde el estado solicitado. El seguimiento «XXX» limita la respuesta, pero no era el pedido principal. El reinicio no verifica la entrega.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_03247",
+      "resolution": "resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": [
+        "Reclamar un cobro por una compra no realizada",
+        "Consultar disponibilidad de la aplicación para Android"
+      ],
+      "notes": "El asistente aprueba el reembolso completo por el cobro indebido y el usuario confirma resolución en M5. Consulta sobre app de Android respondida en M7.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_00574",
+      "resolution": "resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Obtener una copia de los datos de la cuenta"],
+      "notes": "M4 da un procedimiento pertinente y M5 confirma «Joya, ya está». Se toma como éxito reportado, sin verificación externa del archivo.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_04253",
+      "resolution": "no_resuelto",
+      "frustration": "presente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Solicitar el reembolso del mes pagado"],
+      "notes": "El reembolso no se concreta y el usuario abandona en M6. M4 y M6 expresan frustración. El asistente vuelve a pedir el email, pero el usuario no lo repite ni alude a haberlo enviado.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_01654",
+      "resolution": "resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Obtener un comprobante detallado"],
+      "notes": "La ruta de descarga se indica en M4 y el usuario confirma funcionamiento en M5. Reiniciar es compatible con acceder a la descarga.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_02377",
+      "resolution": "resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Recuperar acceso bloqueado por dirección IP"],
+      "notes": "M5 confirma «Joya, ya está» tras el desbloqueo informado. Resultado reportado por el usuario.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_02882",
+      "resolution": "resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Consultar si hay una caída de la plataforma"],
+      "notes": "M2 y M5 responden el estado consultado. Negarse a compartir el DNI no es por sí solo frustración. La disponibilidad real no se verifica externamente.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_04397",
+      "resolution": "resuelto",
+      "frustration": "presente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": [
+        "Recuperar acceso a una cuenta bloqueada temporalmente"
+      ],
+      "notes": "M5 confirma que funcionó después de reiniciar. M1 expresa cansancio explícito.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_00379",
+      "resolution": "resuelto",
+      "frustration": "presente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Cancelar la suscripción por demora del soporte"],
+      "notes": "M4 informa cancelación y M5 confirma «Perfecto, quedó». Enojo e insatisfacción con soporte expresados en M1.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_02765",
+      "resolution": "resuelto",
+      "frustration": "presente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": [
+        "Solicitar un reembolso por insatisfacción con el servicio"
+      ],
+      "notes": "El asistente confirma procesar el reembolso y el usuario manifiesta resolución y conformidad en M11 y M13. «No sirve» (M1) expresa insatisfacción.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_00814",
+      "resolution": "resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Resolver la opción de mantener la sesión iniciada"],
+      "notes": "M4 confirma funcionamiento tras revisar cookies. Se repite el asistente, no el usuario.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_00409",
+      "resolution": "indeterminado",
+      "frustration": "presente",
+      "repetition": "ausente",
+      "assistant_quality": "alucinacion_o_mala_respuesta",
+      "contact_reasons": ["Reclamar un tipo de cambio elevado"],
+      "notes": "«Muy alto» (M1) expresa insatisfacción con el precio. M4 responde sobre cargos duplicados, no sobre tipo de cambio; el agradecimiento no demuestra resolución.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_01330",
+      "resolution": "resuelto",
+      "frustration": "indeterminado",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Recuperar acceso bloqueado por ubicación"],
+      "notes": "M5 confirma éxito. «Vengo probando hace rato» (M1) deja ambiguo si hay frustración o solo esfuerzo previo.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_02571",
+      "resolution": "resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": [
+        "Reducir el almacenamiento ocupado por la aplicación"
+      ],
+      "notes": "M4 confirma funcionamiento después de una recomendación pertinente al espacio ocupado. Repetición del asistente en M2–M3, no del usuario.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_02499",
+      "resolution": "parcialmente_resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": [
+        "Resolver bloqueos por falta de espacio",
+        "Consultar cómo invitar personas al equipo"
+      ],
+      "notes": "El problema de espacio se deriva (M4–M5). La consulta sobre invitaciones recibe respuesta en M7.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_00697",
+      "resolution": "no_resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": [
+        "Resolver problemas de sincronización entre dispositivos"
+      ],
+      "notes": "M4–M5 dejan el problema en otro canal, sin solución observada.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_02368",
+      "resolution": "parcialmente_resuelto",
+      "frustration": "presente",
+      "repetition": "ausente",
+      "assistant_quality": "alucinacion_o_mala_respuesta",
+      "contact_reasons": [
+        "Reclamar un cargo duplicado de suscripción",
+        "Consultar disponibilidad de la aplicación para Android"
+      ],
+      "notes": "El cargo queda escalado (M4) y la promesa final está truncada (M10). Android se responde en M7. «Esto es un desastre» (M1) expresa frustración.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_00753",
+      "resolution": "resuelto",
+      "frustration": "presente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Resolver cierres inesperados de la aplicación"],
+      "notes": "M5 confirma éxito después de actualizar. M1 expresa cansancio; las mayúsculas no son la única evidencia.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_04667",
+      "resolution": "indeterminado",
+      "frustration": "presente",
+      "repetition": "ausente",
+      "assistant_quality": "alucinacion_o_mala_respuesta",
+      "contact_reasons": [
+        "Conocer las ventajas del producto frente a alternativas"
+      ],
+      "notes": "M2 usa «X, Y y Z» sin ventajas concretas y M3 cambia a 2FA. M4 no aclara cómo quedó respondida la consulta original. M1 expresa cansancio.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_04945",
+      "resolution": "resuelto",
+      "frustration": "presente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Entender qué ocurre ante una disputa bancaria"],
+      "notes": "M5 explica que la devolución espera la resolución de la disputa: contesta la pregunta informativa, no confirma un reembolso. «Es la tercera vez» (M1) es una queja, no repetición de información.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_02069",
+      "resolution": "resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Configurar una passkey"],
+      "notes": "M5 confirma éxito. Tras una interrupción el asistente vuelve a pedir datos (M8), pero no hay un nuevo fallo ni repetición del usuario: no se borra la confirmación anterior.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_01146",
+      "resolution": "no_resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "alucinacion_o_mala_respuesta",
+      "contact_reasons": ["Obtener una demostración personalizada"],
+      "notes": "M6 deja la demo pendiente del equipo comercial. «Funcionó después de reiniciar» (M7) no confirma realización ni agenda de la demo.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_00902",
+      "resolution": "no_resuelto",
+      "frustration": "presente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Resolver un pago rechazado por la tarjeta"],
+      "notes": "M4 no resuelve y M5 abandona con «Olvidate, busco otra opcion», señal de frustración.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_03095",
+      "resolution": "resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Reactivar una suscripción cancelada"],
+      "notes": "M5 confirma solución tras la instrucción pertinente de suscribirse de nuevo. «Urgente» no basta para inferir frustración.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_00070",
+      "resolution": "no_resuelto",
+      "frustration": "indeterminado",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Resolver el inicio de sesión corporativo SSO"],
+      "notes": "M4 dice que no se arregló. «Vengo probando hace rato» (M1) no permite distinguir esfuerzo previo de impaciencia.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_04923",
+      "resolution": "no_resuelto",
+      "frustration": "presente",
+      "repetition": "ausente",
+      "assistant_quality": "alucinacion_o_mala_respuesta",
+      "contact_reasons": ["Restablecer la contraseña y recuperar acceso"],
+      "notes": "M5 y M7 expresan frustración y abandono. El asistente vuelve a pedir el email (M4 y M6), pero el usuario no lo repite: pedido redundante sin repetición observada.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_01801",
+      "resolution": "no_resuelto",
+      "frustration": "presente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Obtener tutoriales del producto"],
+      "notes": "Los recursos no se entregan y el caso queda escalado (M6–M7). M1 expresa cansancio.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_03305",
+      "resolution": "no_resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "alucinacion_o_mala_respuesta",
+      "contact_reasons": [
+        "Desbloquear la cuenta tras varios intentos de acceso"
+      ],
+      "notes": "M3–M4 dejan el caso pendiente de otro equipo, pese a la promesa de desbloqueo. Los intentos fallidos de M1 no prueban frustración ni repetición de información.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_03464",
+      "resolution": "no_resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Resolver la visualización de datos desactualizados"],
+      "notes": "M6–M7 derivan el problema sin resolverlo. No hay confirmación posterior.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_04591",
+      "resolution": "no_resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Consultar cómo ocultar información personal"],
+      "notes": "No se proporciona un procedimiento; M4–M5 derivan la consulta. Expresar que no entiende no basta para inferir frustración.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_04074",
+      "resolution": "resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Renovar un enlace de verificación de email vencido"],
+      "notes": "M5 confirma «Joya, ya esta» tras el reenvío indicado en M4.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_04191",
+      "resolution": "resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": [
+        "Resolver una pantalla en blanco al abrir la aplicación"
+      ],
+      "notes": "M5 confirma éxito después de las instrucciones de M4. Sin señales emocionales claras ni repetición del usuario.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_04983",
+      "resolution": "resuelto",
+      "frustration": "indeterminado",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": [
+        "Ubicar el botón para cancelar la suscripción",
+        "Consultar disponibilidad de la aplicación para Android"
+      ],
+      "notes": "M4 ubica el botón y M7 responde sobre Android. Ambos pedidos informativos quedan contestados; no se afirma una cancelación. «Vengo probando hace rato» es ambiguo.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_02673",
+      "resolution": "indeterminado",
+      "frustration": "presente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": [
+        "Solicitar un reembolso por insatisfacción con el servicio"
+      ],
+      "notes": "M1 expresa insatisfacción («no sirve»). «Ahora entró» (M5) confirma acceso, no la devolución prometida en M4.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_02970",
+      "resolution": "no_resuelto",
+      "frustration": "presente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Consultar dónde descargar las facturas"],
+      "notes": "M4–M5 derivan el pedido sin indicar la descarga. «No puede ser» (M1) expresa frustración.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_03842",
+      "resolution": "no_resuelto",
+      "frustration": "ausente",
+      "repetition": "ausente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": ["Recibir el enlace de acceso sin contraseña"],
+      "notes": "M4 confirma «Sigue igual». La derivación telefónica no resolvió el acceso. Reportar persistencia no basta por sí solo para marcar frustración.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_02775",
+      "resolution": "no_resuelto",
+      "frustration": "presente",
+      "repetition": "ausente",
+      "assistant_quality": "alucinacion_o_mala_respuesta",
+      "contact_reasons": ["Consultar la garantía de devolución aplicable"],
+      "notes": "M2 da una política genérica, pero el intercambio continúa sin atender la consulta y termina con «Me rindo» (M6). M4 y M6 expresan frustración. No repite información sustantiva.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_02802",
+      "resolution": "resuelto",
+      "frustration": "presente",
+      "repetition": "presente",
+      "assistant_quality": "alucinacion_o_mala_respuesta",
+      "contact_reasons": ["Resolver cierres inesperados de la aplicación"],
+      "notes": "M9 declara solución; no se valida recomendar borrar la cuenta. M1 expresa frustración. «Desde ayer» se repite en M3 y M5 tras la pregunta redundante de M4.",
+      "reviewed": true
+    }
+  ]
+}

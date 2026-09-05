@@ -1,0 +1,2444 @@
+{
+  "conversations": [
+    {
+      "id": "conv_04681",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Vengo probando hace rato. No puedo configurar passkey."
+        },
+        {
+          "role": "assistant",
+          "content": "Entiendo, suele pasar. Te ayudo a solucionarlo. ¿Qué navegador y sistema operativo usás?"
+        },
+        {
+          "role": "user",
+          "content": "Ahi va: Google Pixel 7 (Android 12) app 2.1.3"
+        },
+        {
+          "role": "assistant",
+          "content": "¿Desde cuándo te pasa exactamente?"
+        },
+        {
+          "role": "user",
+          "content": "Desde ayer más o menos."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Probaste desde otro navegador/dispositivo?"
+        },
+        {
+          "role": "user",
+          "content": "No, solo probé desde este."
+        },
+        {
+          "role": "assistant",
+          "content": "Asegurate de tener el navegador actualizado y probá de nuevo. Si podés, probalo ahora y decime si quedó."
+        },
+        {
+          "role": "user",
+          "content": "Listo, ya funciona."
+        },
+        {
+          "role": "user",
+          "content": "Otra cosita rápida: ¿Cómo hago para exportar mis datos?"
+        },
+        {
+          "role": "assistant",
+          "content": "Vas a Configuración → Datos → Exportar."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-11-11T18:53:13Z"
+      }
+    },
+    {
+      "id": "conv_01179",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Buenas noches. Quiero cambiar la fecha de facturación."
+        },
+        {
+          "role": "assistant",
+          "content": "¡Claro! Te ayudo con eso. ¿Qué fecha te vendría mejor?"
+        },
+        {
+          "role": "user",
+          "content": "Le paso el dato: agustin.martinez614@acme.io."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Desde cuándo te pasa exactamente?"
+        },
+        {
+          "role": "user",
+          "content": "Desde ayer más o menos."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Probaste desde otro navegador/dispositivo?"
+        },
+        {
+          "role": "user",
+          "content": "No, solo probé desde este."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Te acordás si hiciste algún cambio antes de que empezara?"
+        },
+        {
+          "role": "user",
+          "content": "No, no cambié nada."
+        },
+        {
+          "role": "assistant",
+          "content": "Cambiado. A partir del mes que viene te cobro el día que pediste. Si podés, probalo ahora y decime si quedó."
+        },
+        {
+          "role": "user",
+          "content": "Ahí probé y se solucionó."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-10-23T04:52:53Z"
+      }
+    },
+    {
+      "id": "conv_03414",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Hola, cómo están. No puedo configurar passkey. Mi device: Acá va: Samsung Galaxy S21 (Android 14) app 2.1.0."
+        },
+        {
+          "role": "assistant",
+          "content": "Necesito la información para continuar. Ya tengo los datos. Asegurate de tener el navegador actualizado y probá de nuevo."
+        },
+        {
+          "role": "assistant",
+          "content": "Asegurate de tener el navegador actualizado y probá de nuevo. Si podés, probalo ahora y decime si quedó."
+        },
+        {
+          "role": "user",
+          "content": "Perfecto, quedó."
+        },
+        {
+          "role": "assistant",
+          "content": "Buenísimo que haya quedado. Avisame si surge otra cosa."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-01-01T20:30:12Z"
+      }
+    },
+    {
+      "id": "conv_03951",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Hola, buenas. La app ocupa mucha memoria. Deberia probar desde otro dispositivo?"
+        },
+        {
+          "role": "assistant",
+          "content": "Gracias por el detalle, lo revisamos juntos. ¿Cuánto espacio libre tenés en el dispositivo?"
+        },
+        {
+          "role": "user",
+          "content": "El error que veo es ERR_500. Ya probe con otra red, borre cache, probe en otro navegador."
+        },
+        {
+          "role": "assistant",
+          "content": "Gracias. Para avanzar necesito que lo revise un especialista. ¿Te va si lo escalamos? Podés escribir a soporte@empresa-ejemplo.com.ar con el asunto \"CUST-66103\" y adjuntar captura del error."
+        },
+        {
+          "role": "user",
+          "content": "Ok, lo mando."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-02-05T22:58:17Z"
+      }
+    },
+    {
+      "id": "conv_04038",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Ayuda:. El monto del cobro es incorrecto. ¿Será que tengo que reinstalar la app?"
+        },
+        {
+          "role": "assistant",
+          "content": "Provea los datos requeridos. ¿Cuál es el ID del cobro y cuánto esperabas que fuera?"
+        },
+        {
+          "role": "user",
+          "content": "Mi order_id es ORD-626626."
+        },
+        {
+          "role": "assistant",
+          "content": "Gracias. Para avanzar necesito que lo revise un especialista. ¿Te va si lo escalamos? Podés escribir a soporte@empresa-ejemplo.com.ar con el asunto \"CUST-96391\" y adjuntar captura del error."
+        },
+        {
+          "role": "user",
+          "content": "Listo, lo envío."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-03-03T20:18:57Z"
+      }
+    },
+    {
+      "id": "conv_01090",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Cordial saludo. ¿Por qué me cobraron un monto parcial? ¿Es posible que sea un bug?"
+        },
+        {
+          "role": "assistant",
+          "content": "¡Claro! Te ayudo con eso. ¿Cuál es el ID del cobro? Te explico el cálculo."
+        },
+        {
+          "role": "user",
+          "content": "La tarjeta termina en 3830 y es American Express."
+        },
+        {
+          "role": "assistant",
+          "content": "Estoy revisando... ¿podés intentar más tarde?"
+        },
+        {
+          "role": "user",
+          "content": "Olvidate, busco otra opción."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-12-18T07:39:10Z"
+      }
+    },
+    {
+      "id": "conv_02625",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Quiero activar la biometria pero no me deja."
+        },
+        {
+          "role": "assistant",
+          "content": "Perfecto, lo vemos. ¿Tenés la última versión de la app instalada?"
+        },
+        {
+          "role": "user",
+          "content": "Aca va: Google Pixel 8 (Android 14) app 2.1.0."
+        },
+        {
+          "role": "assistant",
+          "content": "Gracias. Para avanzar necesito que lo revise un especialista. ¿Te va si lo escalamos? Podés escribir a soporte@empresa-ejemplo.com.ar con el asunto \"CUST-37929\" y adjuntar captura del error."
+        },
+        {
+          "role": "user",
+          "content": "Ok, lo mando."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-05-27T04:43:57Z"
+      }
+    },
+    {
+      "id": "conv_00056",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Hola. Necesito el comprobante de pago y no lo encuentro. Es posible que sea un bug?"
+        },
+        {
+          "role": "assistant",
+          "content": "Provea los datos requeridos. ¿Cuál es tu email para revisar el envío de facturas?"
+        },
+        {
+          "role": "user",
+          "content": "Es emma.lopez691@empresa-ejemplo.com.ar."
+        },
+        {
+          "role": "assistant",
+          "content": "No es posible resolverlo por este canal."
+        },
+        {
+          "role": "user",
+          "content": "No tengo tiempo. Chau."
+        },
+        {
+          "role": "user",
+          "content": "Otra cosita rapida: Como hago para exportar mis datos?"
+        },
+        {
+          "role": "assistant",
+          "content": "Vas a Configuración → Datos → Exportar."
+        },
+        {
+          "role": "user",
+          "content": "Ok, listo. Gracias."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-10-19T17:31:16Z"
+      }
+    },
+    {
+      "id": "conv_04118",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Hola, cómo están. ¿Qué métodos de pago aceptan?"
+        },
+        {
+          "role": "assistant",
+          "content": "Perfecto, lo vemos. ¿Desde qué país vas a pagar?"
+        },
+        {
+          "role": "user",
+          "content": "El cobro fue por $421.73 y el ID es ORD-825918."
+        },
+        {
+          "role": "assistant",
+          "content": "Gracias. Para avanzar necesito que lo revise un especialista. ¿Te va si lo escalamos? Podés escribir a soporte@empresa-ejemplo.com.ar con el asunto \"CUST-26085\" y adjuntar captura del error."
+        },
+        {
+          "role": "user",
+          "content": "Bueno, les escribo."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-05-14T19:26:25Z"
+      }
+    },
+    {
+      "id": "conv_03374",
+      "messages": [
+        {
+          "role": "user",
+          "content": "La app tarda una eternidad."
+        },
+        {
+          "role": "assistant",
+          "content": "Entendido, vamos paso a paso. ¿En qué red estás? ¿WiFi o datos?"
+        },
+        {
+          "role": "user",
+          "content": "Si, mi device es Google Pixel 8 (iOS 16.6) app 1.8.2."
+        },
+        {
+          "role": "assistant",
+          "content": "Probá cambiar de red o reiniciar el router. Ahora, hagamos esto: cerrá sesión y volvé a intentar."
+        },
+        {
+          "role": "user",
+          "content": "Funciono despues de reiniciar."
+        },
+        {
+          "role": "assistant",
+          "content": "Perfecto, gracias por la paciencia."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-03-18T12:46:11Z"
+      }
+    },
+    {
+      "id": "conv_00742",
+      "messages": [
+        {
+          "role": "user",
+          "content": "ESTOY MEDIO CANSADO/A DE ESTO. ¿Puedo dar de baja una funcionalidad extra?"
+        },
+        {
+          "role": "assistant",
+          "content": "Gracias por el detalle, lo revisamos juntos. ¿Cuál es tu email? Te muestro los add-ons activos."
+        },
+        {
+          "role": "user",
+          "content": "DALE, LUCIA.SANCHEZ628@ACME.IO"
+        },
+        {
+          "role": "assistant",
+          "content": "¿Desde cuándo te pasa exactamente?"
+        },
+        {
+          "role": "user",
+          "content": "DESDE AYER MÁS O MENOS."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Probaste desde otro navegador/dispositivo?"
+        },
+        {
+          "role": "user",
+          "content": "NO, SOLO PROBÉ DESDE ESTE."
+        },
+        {
+          "role": "assistant",
+          "content": "El add-on se cancela a fin de mes. Hasta entonces lo seguís usando. Si podés, probalo ahora y decime si quedó."
+        },
+        {
+          "role": "user",
+          "content": "GENIAL, ANDUVO."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-03-14T21:20:06Z"
+      }
+    },
+    {
+      "id": "conv_04355",
+      "messages": [
+        {
+          "role": "user",
+          "content": "No soportan mi version de Android/iOS."
+        },
+        {
+          "role": "assistant",
+          "content": "Entendido, vamos paso a paso. Revisando tu historial, encontré algo que puede ser la causa. Hay una versión lite para dispositivos más antiguos."
+        },
+        {
+          "role": "assistant",
+          "content": "Hay una versión lite para dispositivos más antiguos. Si podés, probalo ahora y decime si quedó."
+        },
+        {
+          "role": "user",
+          "content": "Perfecto, quedo."
+        },
+        {
+          "role": "assistant",
+          "content": "Perfecto. Cualquier cosa, acá estoy."
+        },
+        {
+          "role": "user",
+          "content": "Genial, mil gracias"
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-03-08T07:46:52Z"
+      }
+    },
+    {
+      "id": "conv_04738",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Buenas noches. Veo dos cobros iguales en mi tarjeta."
+        },
+        {
+          "role": "assistant",
+          "content": "Perfecto, lo vemos. Necesito el número de transacción para verificar."
+        },
+        {
+          "role": "user",
+          "content": "La tarjeta termina en 1581 y es Cabal."
+        },
+        {
+          "role": "assistant",
+          "content": "Confirmado el duplicado. Te proceso el reembolso en 5-7 días hábiles. Si podés, probalo ahora y decime si quedó."
+        },
+        {
+          "role": "user",
+          "content": "Ahí probé y se solucionó."
+        },
+        {
+          "role": "user",
+          "content": "Ya que estamos, tengo otra consulta. ¿Cómo hago para exportar mis datos?"
+        },
+        {
+          "role": "assistant",
+          "content": "Vas a Configuración → Datos → Exportar."
+        },
+        {
+          "role": "user",
+          "content": "Quedo conforme, gracias."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-06-09T04:02:22Z"
+      }
+    },
+    {
+      "id": "conv_01284",
+      "messages": [
+        {
+          "role": "user",
+          "content": "El monto del cobro es incorrecto."
+        },
+        {
+          "role": "assistant",
+          "content": "Perfecto, lo vemos. ¿Cuál es el ID del cobro y cuánto esperabas que fuera?"
+        },
+        {
+          "role": "user",
+          "content": "El cobro fue por $238.36 y el ID es ORD-831213."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Desde cuándo te pasa exactamente?"
+        },
+        {
+          "role": "user",
+          "content": "Desde ayer más o menos."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Probaste desde otro navegador/dispositivo?"
+        },
+        {
+          "role": "user",
+          "content": "No, solo probé desde este."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Te acordás si hiciste algún cambio antes de que empezara?"
+        },
+        {
+          "role": "user",
+          "content": "No, no cambié nada."
+        },
+        {
+          "role": "assistant",
+          "content": "Tenés razón, hubo un error de pricing. Te ajusto y acredito la diferencia. Ahora, hagamos esto: cerrá sesión y volvé a intentar."
+        },
+        {
+          "role": "user",
+          "content": "Ahora entró."
+        },
+        {
+          "role": "user",
+          "content": "Una cosa más antes de irme: ¿Cómo hago para exportar mis datos?"
+        },
+        {
+          "role": "assistant",
+          "content": "Vas a Configuración → Datos → Exportar."
+        },
+        {
+          "role": "user",
+          "content": "Genial, mil gracias"
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-05-12T19:43:37Z"
+      }
+    },
+    {
+      "id": "conv_00351",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Qué tal. Estoy muy molesto/a. Quiero reembolso parcial."
+        },
+        {
+          "role": "assistant",
+          "content": "Entiendo la frustración, vamos a resolverlo ahora. ¿Cuánto tiempo usaste el servicio?"
+        },
+        {
+          "role": "user",
+          "content": "Sí, mi order_id es ORD-579150."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Me pasás tu dirección completa?"
+        },
+        {
+          "role": "user",
+          "content": "Prefiero no compartirlo."
+        },
+        {
+          "role": "assistant",
+          "content": "Te calculo el reembolso proporcional: $X por los Y meses no usados. Si podés, probalo ahora y decime si quedó."
+        },
+        {
+          "role": "user",
+          "content": "Joya, ya está."
+        },
+        {
+          "role": "assistant",
+          "content": "Buenísimo que haya quedado. Avisame si surge otra cosa."
+        },
+        {
+          "role": "user",
+          "content": "Gracias, saludos."
+        },
+        {
+          "role": "user",
+          "content": "Una cosa más antes de irme: ¿Tienen app para Android?"
+        },
+        {
+          "role": "assistant",
+          "content": "Sí, está en el Play Store."
+        },
+        {
+          "role": "user",
+          "content": "Perfecto, gracias."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-04-26T18:40:31Z"
+      }
+    },
+    {
+      "id": "conv_03130",
+      "messages": [
+        {
+          "role": "user",
+          "content": "No entiendo por qué pasa. Error de conexión constante."
+        },
+        {
+          "role": "assistant",
+          "content": "Entiendo, suele pasar. Te ayudo a solucionarlo. ¿Qué red usás? ¿Corporativa o personal?"
+        },
+        {
+          "role": "user",
+          "content": "Sí, mi device es iPhone 15 (Android 13) app 2.1.0."
+        },
+        {
+          "role": "assistant",
+          "content": "Estoy revisando... ¿podés intentar más tarde?"
+        },
+        {
+          "role": "user",
+          "content": "No tengo tiempo. Chau."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-12-27T00:34:21Z"
+      }
+    },
+    {
+      "id": "conv_02594",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Buenas. No puedo esperar a fin de mes para cancelar."
+        },
+        {
+          "role": "assistant",
+          "content": "¡Claro! Te ayudo con eso. Entiendo. Pasame el email para ver las opciones."
+        },
+        {
+          "role": "user",
+          "content": "Es mia.perez657@empresa-ejemplo.com.ar."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Desde cuándo te pasa exactamente?"
+        },
+        {
+          "role": "user",
+          "content": "Desde ayer mas o menos."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Probaste desde otro navegador/dispositivo?"
+        },
+        {
+          "role": "user",
+          "content": "No, solo probe desde este."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Te acordás si hiciste algún cambio antes de que empezara?"
+        },
+        {
+          "role": "user",
+          "content": "No, no cambie nada."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Me pasás tu dirección completa?"
+        },
+        {
+          "role": "user",
+          "content": "Para que lo necesitas?"
+        },
+        {
+          "role": "assistant",
+          "content": "¿Cuál es tu email? ¿Es urgente por algún motivo?"
+        },
+        {
+          "role": "user",
+          "content": "Te lo mande arriba."
+        },
+        {
+          "role": "assistant",
+          "content": "La baja es inmediata pero perdés los días restantes. ¿Confirmás? Ahora, hagamos esto: cerrá sesión y volvé a intentar."
+        },
+        {
+          "role": "user",
+          "content": "Funciono despues de reiniciar."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-10-26T07:52:17Z"
+      }
+    },
+    {
+      "id": "conv_01704",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Ayuda:. Estoy medio cansado/a de esto. ¿Hay descuento para ONGs?"
+        },
+        {
+          "role": "assistant",
+          "content": "Dale, lo vemos y lo resolvemos. ¿Me pasás el nombre de la organización?"
+        },
+        {
+          "role": "user",
+          "content": "Sí, mi email es agustin.rodriguez739@acme.io."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Desde cuándo te pasa exactamente?"
+        },
+        {
+          "role": "user",
+          "content": "Desde ayer más o menos."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Probaste desde otro navegador/dispositivo?"
+        },
+        {
+          "role": "user",
+          "content": "No, solo probé desde este."
+        },
+        {
+          "role": "assistant",
+          "content": "Tenemos 30% de descuento para ONGs verificadas. Si podés, probalo ahora y decime si quedó."
+        },
+        {
+          "role": "user",
+          "content": "Joya, ya está."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-01-07T21:05:49Z"
+      }
+    },
+    {
+      "id": "conv_01319",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Buenasss. Quiero activar la biometría pero no me deja."
+        },
+        {
+          "role": "assistant",
+          "content": "Entendido, vamos paso a paso. ¿Qué dispositivo tenés? ¿iOS o Android?"
+        },
+        {
+          "role": "user",
+          "content": "Dale, iPhone 13 (iOS 16.6) app 2.0.1"
+        },
+        {
+          "role": "assistant",
+          "content": "Gracias. Para avanzar necesito que lo revise un especialista. ¿Te va si lo escalamos? Podés escribir a soporte@empresa-ejemplo.com.ar con el asunto \"CUST-34348\" y adjuntar captura del error."
+        },
+        {
+          "role": "user",
+          "content": "Listo, lo envío."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-08-19T14:03:29Z"
+      }
+    },
+    {
+      "id": "conv_03290",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Hola, cómo están. Estoy muy molesto/a. Me cobraron después del trial, quiero reembolso."
+        },
+        {
+          "role": "assistant",
+          "content": "Gracias por avisar, lo solucionamos ya. ¿Cuál es tu email?"
+        },
+        {
+          "role": "user",
+          "content": "Sí, mi email es lucia.fernandez427@empresa-ejemplo.com.ar."
+        },
+        {
+          "role": "assistant",
+          "content": "Como cortesía, te devuelvo el primer cobro post-trial. Si podés, probalo ahora y decime si quedó."
+        },
+        {
+          "role": "user",
+          "content": "Genial, anduvo."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-02-21T17:10:52Z"
+      }
+    },
+    {
+      "id": "conv_03314",
+      "messages": [
+        {
+          "role": "user",
+          "content": "El captcha me aparece infinitas veces."
+        },
+        {
+          "role": "assistant",
+          "content": "¡Claro! Te ayudo con eso. ¿Qué navegador usás? ¿Tenés extensiones de privacidad?"
+        },
+        {
+          "role": "user",
+          "content": "Ahi va: iPhone 15 (iOS 16.6) app 2.1.3"
+        },
+        {
+          "role": "assistant",
+          "content": "¿Desde cuándo te pasa exactamente?"
+        },
+        {
+          "role": "user",
+          "content": "Desde ayer más o menos."
+        },
+        {
+          "role": "assistant",
+          "content": "Probá desactivar extensiones de bloqueo y refrescar la página. Si podés, probalo ahora y decime si quedó."
+        },
+        {
+          "role": "user",
+          "content": "Genial, anduvo."
+        },
+        {
+          "role": "assistant",
+          "content": "Perfecto. Cualquier cosa, acá estoy."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-09-24T07:28:37Z"
+      }
+    },
+    {
+      "id": "conv_01159",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Hola che. Necesito saber si hay precio por usuario."
+        },
+        {
+          "role": "assistant",
+          "content": "¡Claro! Te ayudo con eso. ¿Cuántos usuarios tienen hoy?"
+        },
+        {
+          "role": "user",
+          "content": "El equipo tiene 81 personas."
+        },
+        {
+          "role": "assistant",
+          "content": "Hasta 10 usuarios es precio fijo. Después es por usuario. Si podés, probalo ahora y decime si quedó."
+        },
+        {
+          "role": "user",
+          "content": "Perfecto, quedó."
+        },
+        {
+          "role": "user",
+          "content": "Aprovecho para preguntar otra cosa... ¿Cómo hago para exportar mis datos?"
+        },
+        {
+          "role": "assistant",
+          "content": "Vas a Configuración → Datos → Exportar."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-06-27T06:05:46Z"
+      }
+    },
+    {
+      "id": "conv_02039",
+      "messages": [
+        {
+          "role": "user",
+          "content": "No puede conectar al servidor."
+        },
+        {
+          "role": "assistant",
+          "content": "Necesito la información para continuar. ¿Usás VPN o firewall?"
+        },
+        {
+          "role": "user",
+          "content": "Me pasa desde ayer en iPhone 12 con Android 14."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Desde cuándo te pasa exactamente?"
+        },
+        {
+          "role": "user",
+          "content": "Desde ayer más o menos."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Probaste desde otro navegador/dispositivo?"
+        },
+        {
+          "role": "user",
+          "content": "No, solo probé desde este."
+        },
+        {
+          "role": "assistant",
+          "content": "Algunas redes corporativas bloquean el tráfico. Probá con datos móviles. Si podés, probalo ahora y decime si quedó."
+        },
+        {
+          "role": "user",
+          "content": "Perfecto, quedó."
+        },
+        {
+          "role": "assistant",
+          "content": "Perfecto. Cualquier cosa, acá estoy."
+        },
+        {
+          "role": "user",
+          "content": "Gracias, saludos."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-06-24T07:56:29Z"
+      }
+    },
+    {
+      "id": "conv_03792",
+      "messages": [
+        {
+          "role": "user",
+          "content": "¿Es por usuario o precio fijo?"
+        },
+        {
+          "role": "assistant",
+          "content": "Entendido, vamos paso a paso. ¿Proyectan crecer? ¿A cuántos?"
+        },
+        {
+          "role": "user",
+          "content": "El equipo tiene 127 personas."
+        },
+        {
+          "role": "assistant",
+          "content": "Hasta 10 usuarios es precio fijo. Después es por usuario. Si podés, probalo ahora y decime si quedó."
+        },
+        {
+          "role": "user",
+          "content": "Ahí probé y se solucionó."
+        },
+        {
+          "role": "user",
+          "content": "Aprovecho para preguntar otra cosa... ¿Cómo hago para exportar mis datos?"
+        },
+        {
+          "role": "assistant",
+          "content": "Vas a Configuración → Datos → Exportar."
+        },
+        {
+          "role": "user",
+          "content": "Listo, mil gracias."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-06-05T16:13:41Z"
+      }
+    },
+    {
+      "id": "conv_01130",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Solo use un mes de los tres que pague."
+        },
+        {
+          "role": "assistant",
+          "content": "Entendido, vamos paso a paso. ¿Cuál es el ID de la transacción?"
+        },
+        {
+          "role": "user",
+          "content": "Le paso el dato: ORD-487570."
+        },
+        {
+          "role": "assistant",
+          "content": "En este caso no puedo avanzar desde acá. Voy a derivarlo."
+        },
+        {
+          "role": "user",
+          "content": "Listo, lo envio."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-11-24T21:49:16Z"
+      }
+    },
+    {
+      "id": "conv_03873",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Desde que instale la app, no me dura el telefono."
+        },
+        {
+          "role": "assistant",
+          "content": "Perfecto, lo vemos. ¿Tenés la sincronización en segundo plano activada?"
+        },
+        {
+          "role": "user",
+          "content": "Me pasa desde ayer en iPhone 15 con iOS 16.6."
+        },
+        {
+          "role": "assistant",
+          "content": "Estoy revisando... ¿podés intentar más tarde?"
+        },
+        {
+          "role": "user",
+          "content": "No tengo tiempo. Chau."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-04-10T05:23:12Z"
+      }
+    },
+    {
+      "id": "conv_01804",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Hola, cómo están. Me conviene facturar en dólares. Mi email: El cobro fue por $499.22 y el ID es ORD-868389."
+        },
+        {
+          "role": "assistant",
+          "content": "Entendido, vamos paso a paso. Ya tengo los datos. Lamentablemente solo facturamos en pesos para Argentina."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Cuál es tu DNI?"
+        },
+        {
+          "role": "user",
+          "content": "No veo por qué es relevante."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Cuál es tu email? Verifico las opciones de tu región."
+        },
+        {
+          "role": "user",
+          "content": "¿Podés ayudarme o no?"
+        },
+        {
+          "role": "assistant",
+          "content": "¿En qué moneda te gustaría facturar?"
+        },
+        {
+          "role": "user",
+          "content": "Me rindo, gracias igual."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-10-22T16:10:08Z"
+      }
+    },
+    {
+      "id": "conv_00539",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Pagué pero nunca lo usé."
+        },
+        {
+          "role": "assistant",
+          "content": "Entendido, vamos paso a paso. Revisando tu historial, encontré algo que puede ser la causa. Confirmado, no hubo uso. Te proceso el reembolso completo."
+        },
+        {
+          "role": "assistant",
+          "content": "Estoy revisando... ¿podés intentar más tarde?"
+        },
+        {
+          "role": "user",
+          "content": "Olvidate, busco otra opción."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-01-21T05:47:09Z"
+      }
+    },
+    {
+      "id": "conv_01907",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Buenas tardes. ¿Cómo cambio los permisos de un usuario? Mi email: Acá va: mateo.gonzalez198@mail.test."
+        },
+        {
+          "role": "assistant",
+          "content": "Gracias por el detalle, lo revisamos juntos. Ya tengo los datos. Te lo cambié. El usuario ya tiene los nuevos permisos."
+        },
+        {
+          "role": "assistant",
+          "content": "Gracias. Para avanzar necesito que lo revise un especialista. ¿Te va si lo escalamos? Podés escribir a soporte@empresa-ejemplo.com.ar con el asunto \"CUST-73324\" y adjuntar captura del error."
+        },
+        {
+          "role": "user",
+          "content": "Listo, lo envío."
+        },
+        {
+          "role": "user",
+          "content": "Otra cosita rápida: ¿Puedo invitar a alguien más al equipo?"
+        },
+        {
+          "role": "assistant",
+          "content": "Sí, desde Equipo → Invitar."
+        },
+        {
+          "role": "user",
+          "content": "Buenísimo, gracias."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-06-17T19:50:49Z"
+      }
+    },
+    {
+      "id": "conv_03545",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Estoy medio cansado/a de esto. Quiero cancelar el plan anual."
+        },
+        {
+          "role": "assistant",
+          "content": "Dale, lo vemos y lo resolvemos. Pasame la referencia del pago anual."
+        },
+        {
+          "role": "user",
+          "content": "El order_id es ORD-509472."
+        },
+        {
+          "role": "assistant",
+          "content": "Para arreglarlo, borrá tu cuenta y volvé a registrarte con el mismo email."
+        },
+        {
+          "role": "user",
+          "content": "Genial, se solucionó."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-06-21T03:01:09Z"
+      }
+    },
+    {
+      "id": "conv_02350",
+      "messages": [
+        {
+          "role": "user",
+          "content": "No puedo esperar a fin de mes para cancelar."
+        },
+        {
+          "role": "assistant",
+          "content": "¡Claro! Te ayudo con eso. Ya localicé el problema en el sistema. La baja es inmediata pero perdés los días restantes. ¿Confirmás?"
+        },
+        {
+          "role": "assistant",
+          "content": "La baja es inmediata pero perdés los días restantes. ¿Confirmás? Si podés, probalo ahora y decime si quedó."
+        },
+        {
+          "role": "user",
+          "content": "Perfecto, quedó."
+        },
+        {
+          "role": "assistant",
+          "content": "Genial, me alegro. ¿Necesitás algo más?"
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-08-25T03:37:04Z"
+      }
+    },
+    {
+      "id": "conv_02829",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Me cobraron doble, necesito que devuelvan uno."
+        },
+        {
+          "role": "assistant",
+          "content": "¡Claro! Te ayudo con eso. ¿Cuándo se realizaron los dos pagos?"
+        },
+        {
+          "role": "user",
+          "content": "Mi order_id es ORD-891634."
+        },
+        {
+          "role": "assistant",
+          "content": "Confirmado el duplicado. Te devuelvo uno de los dos. Si podés, probalo ahora y decime si quedó."
+        },
+        {
+          "role": "user",
+          "content": "Ahí probé y se solucionó."
+        },
+        {
+          "role": "assistant",
+          "content": "Buenísimo que haya quedado. Avisame si surge otra cosa."
+        },
+        {
+          "role": "user",
+          "content": "Quedo conforme, gracias."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-07-29T05:56:09Z"
+      }
+    },
+    {
+      "id": "conv_03850",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Necesito ayuda:. Quiero saber como viene mi orden. Mi order_id: Mi order_id es ORD-477370."
+        },
+        {
+          "role": "assistant",
+          "content": "Entendido, vamos paso a paso. Ya tengo los datos. Tu pedido está en camino. Acá tenés el número de seguimiento: XXX."
+        },
+        {
+          "role": "assistant",
+          "content": "Tu pedido está en camino. Acá tenés el número de seguimiento: XXX. Ahora, hagamos esto: cerrá sesión y volvé a intentar."
+        },
+        {
+          "role": "user",
+          "content": "Funciono despues de reiniciar."
+        },
+        {
+          "role": "assistant",
+          "content": "Perfecto, gracias por la paciencia."
+        },
+        {
+          "role": "user",
+          "content": "Le agradezco mucho, saludos."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-06-08T13:31:35Z"
+      }
+    },
+    {
+      "id": "conv_03247",
+      "messages": [
+        {
+          "role": "user",
+          "content": "me cobraron por algo que no compré"
+        },
+        {
+          "role": "assistant",
+          "content": "Perfecto, lo vemos. ¿Cuál es el ID del cobro incorrecto?"
+        },
+        {
+          "role": "user",
+          "content": "le paso el dato: ord-779556"
+        },
+        {
+          "role": "assistant",
+          "content": "Revisé y tenés razón, fue un error. Reembolso completo. Si podés, probalo ahora y decime si quedó."
+        },
+        {
+          "role": "user",
+          "content": "ahí probé y se solucionó"
+        },
+        {
+          "role": "user",
+          "content": "otra cosita rápida: tienen app para android"
+        },
+        {
+          "role": "assistant",
+          "content": "Sí, está en el Play Store."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-08-11T18:13:11Z"
+      }
+    },
+    {
+      "id": "conv_00574",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Buenas, ¿cómo va?. Necesito un backup de mi cuenta."
+        },
+        {
+          "role": "assistant",
+          "content": "¡Claro! Te ayudo con eso. ¿Qué datos específicos querés exportar?"
+        },
+        {
+          "role": "user",
+          "content": "Acá va: tomas.lopez189@mail.test."
+        },
+        {
+          "role": "assistant",
+          "content": "Vas a Configuración → Datos → Solicitar exportación. Te llega por email. Si podés, probalo ahora y decime si quedó."
+        },
+        {
+          "role": "user",
+          "content": "Joya, ya está."
+        },
+        {
+          "role": "assistant",
+          "content": "Buenísimo que haya quedado. Avisame si surge otra cosa."
+        },
+        {
+          "role": "user",
+          "content": "Buenísimo, gracias."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-10-11T12:01:55Z"
+      }
+    },
+    {
+      "id": "conv_04253",
+      "messages": [
+        {
+          "role": "user",
+          "content": "buenos días quiero reembolso del mes que ya pagué mi email: le paso el dato: emmaromero968@soporte-pruebanet"
+        },
+        {
+          "role": "assistant",
+          "content": "Entendido, vamos paso a paso. Ya tengo los datos. El cobro fue antes de la cancelación. Mantenés acceso hasta fin del período."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Cuál es tu email? Reviso las fechas."
+        },
+        {
+          "role": "user",
+          "content": "podés ayudarme o no"
+        },
+        {
+          "role": "assistant",
+          "content": "¿Cuándo se hizo el último cobro?"
+        },
+        {
+          "role": "user",
+          "content": "me rindo, gracias igual"
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-07-16T04:24:03Z"
+      }
+    },
+    {
+      "id": "conv_01654",
+      "messages": [
+        {
+          "role": "user",
+          "content": "¿Me pueden dar un comprobante detallado?"
+        },
+        {
+          "role": "assistant",
+          "content": "Perfecto, lo vemos. ¿Para qué período necesitás el recibo?"
+        },
+        {
+          "role": "user",
+          "content": "Ahi va: ORD-642807"
+        },
+        {
+          "role": "assistant",
+          "content": "Ya podés descargar el recibo desde Facturación → Historial. Ahora, hagamos esto: cerrá sesión y volvé a intentar."
+        },
+        {
+          "role": "user",
+          "content": "Funcionó después de reiniciar."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-08-12T11:17:22Z"
+      }
+    },
+    {
+      "id": "conv_02377",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Holaa. Me dice que mi IP está bloqueada."
+        },
+        {
+          "role": "assistant",
+          "content": "Entendido, vamos paso a paso. ¿Cuál es tu email? Necesito verificar las restricciones."
+        },
+        {
+          "role": "user",
+          "content": "Es thiago.gonzalez163@example.com"
+        },
+        {
+          "role": "assistant",
+          "content": "Agregué tu IP a la lista blanca. Ya deberías poder entrar. Si podés, probalo ahora y decime si quedó."
+        },
+        {
+          "role": "user",
+          "content": "Joya, ya está."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-05-06T06:14:48Z"
+      }
+    },
+    {
+      "id": "conv_02882",
+      "messages": [
+        {
+          "role": "user",
+          "content": "No entiendo por que pasa. Hay problemas con la plataforma ahora?"
+        },
+        {
+          "role": "assistant",
+          "content": "Gracias por el detalle, lo revisamos juntos. Revisando tu historial, encontré algo que puede ser la causa. Revisé el status y todo está operativo. El problema parece local."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Cuál es tu DNI?"
+        },
+        {
+          "role": "user",
+          "content": "Prefiero no compartirlo."
+        },
+        {
+          "role": "assistant",
+          "content": "Revisé el status y todo está operativo. El problema parece local. Si podés, probalo ahora y decime si quedó."
+        },
+        {
+          "role": "user",
+          "content": "Genial, anduvo."
+        },
+        {
+          "role": "assistant",
+          "content": "Buenísimo que haya quedado. Avisame si surge otra cosa."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-10-29T14:38:02Z"
+      }
+    },
+    {
+      "id": "conv_04397",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Estoy medio cansado/a de esto. Me dice que la cuenta esta bloqueada temporalmente."
+        },
+        {
+          "role": "assistant",
+          "content": "Gracias por el detalle, lo revisamos juntos. ¿Cuál es el email de la cuenta bloqueada?"
+        },
+        {
+          "role": "user",
+          "content": "Mi email es catalina.garcia830@soporte-prueba.net."
+        },
+        {
+          "role": "assistant",
+          "content": "Listo, ya podés intentar. Usá 'Olvidé mi contraseña' si no la recordás. Ahora, hagamos esto: cerrá sesión y volvé a intentar."
+        },
+        {
+          "role": "user",
+          "content": "Funciono despues de reiniciar."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-01-03T15:35:29Z"
+      }
+    },
+    {
+      "id": "conv_00379",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Consulta:. Estoy muy molesto/a. El soporte tarda mucho, por eso cancelo."
+        },
+        {
+          "role": "assistant",
+          "content": "Gracias por avisar, lo solucionamos ya. Lamento escuchar eso. ¿Me pasás tu email para procesar?"
+        },
+        {
+          "role": "user",
+          "content": "Ahi va: camila.sanchez398@startup-demo.com"
+        },
+        {
+          "role": "assistant",
+          "content": "Cancelado. Tomé nota del feedback para el equipo de producto. Si podés, probalo ahora y decime si quedó."
+        },
+        {
+          "role": "user",
+          "content": "Perfecto, quedó."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-05-14T11:10:56Z"
+      }
+    },
+    {
+      "id": "conv_02765",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Qué tal. Quiero mi dinero de vuelta, no sirve."
+        },
+        {
+          "role": "assistant",
+          "content": "Entendido, vamos paso a paso. ¿Cuál es tu email? Verifico el caso."
+        },
+        {
+          "role": "user",
+          "content": "Sí, mi email es emma.flores205@mail.test."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Desde cuándo te pasa exactamente?"
+        },
+        {
+          "role": "user",
+          "content": "Desde ayer más o menos."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Probaste desde otro navegador/dispositivo?"
+        },
+        {
+          "role": "user",
+          "content": "No, solo probé desde este."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Te acordás si hiciste algún cambio antes de que empezara?"
+        },
+        {
+          "role": "user",
+          "content": "No, no cambié nada."
+        },
+        {
+          "role": "assistant",
+          "content": "Entiendo tu frustración. Te proceso el reembolso. Si podés, probalo ahora y decime si quedó."
+        },
+        {
+          "role": "user",
+          "content": "Ahí probé y se solucionó."
+        },
+        {
+          "role": "assistant",
+          "content": "Genial, me alegro. ¿Necesitás algo más?"
+        },
+        {
+          "role": "user",
+          "content": "Buenísimo, gracias."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-01-12T00:52:11Z"
+      }
+    },
+    {
+      "id": "conv_00814",
+      "messages": [
+        {
+          "role": "user",
+          "content": "la opción 'recordarme' no funciona"
+        },
+        {
+          "role": "assistant",
+          "content": "¡Claro! Te ayudo con eso. Revisando tu historial, encontré algo que puede ser la causa. Verificá la configuración de cookies de tu navegador."
+        },
+        {
+          "role": "assistant",
+          "content": "Verificá la configuración de cookies de tu navegador. Si podés, probalo ahora y decime si quedó."
+        },
+        {
+          "role": "user",
+          "content": "genial, anduvo"
+        },
+        {
+          "role": "assistant",
+          "content": "Buenísimo que haya quedado. Avisame si surge otra cosa."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-06-08T11:38:06Z"
+      }
+    },
+    {
+      "id": "conv_00409",
+      "messages": [
+        {
+          "role": "user",
+          "content": "El tipo de cambio que usan es muy alto."
+        },
+        {
+          "role": "assistant",
+          "content": "Perfecto, lo vemos. ¿Cuál es tu email? Verifico las opciones de tu región."
+        },
+        {
+          "role": "user",
+          "content": "Aca va: mateo.torres802@soporte-prueba.net."
+        },
+        {
+          "role": "assistant",
+          "content": "El cargo duplicado se cancela solo en 24 horas; no hace falta hacer nada."
+        },
+        {
+          "role": "user",
+          "content": "Perfecto, gracias."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-03-10T09:53:23Z"
+      }
+    },
+    {
+      "id": "conv_01330",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Vengo probando hace rato. El sistema me bloquea x ubicacion."
+        },
+        {
+          "role": "assistant",
+          "content": "Dale, lo vemos y lo resolvemos. ¿Cuál es tu email? Necesito verificar las restricciones."
+        },
+        {
+          "role": "user",
+          "content": "Aca va: emma.flores142@empresa-ejemplo.com.ar."
+        },
+        {
+          "role": "assistant",
+          "content": "Agregué tu IP a la lista blanca. Ya deberías poder entrar. Si podés, probalo ahora y decime si quedó."
+        },
+        {
+          "role": "user",
+          "content": "Perfecto, quedo."
+        },
+        {
+          "role": "assistant",
+          "content": "Genial, me alegro. ¿Necesitás algo más?"
+        },
+        {
+          "role": "user",
+          "content": "Ok, listo. Grax."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-08-25T21:36:52Z"
+      }
+    },
+    {
+      "id": "conv_02571",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Consume demasiado almacenamiento."
+        },
+        {
+          "role": "assistant",
+          "content": "¡Claro! Te ayudo con eso. Veo en tu cuenta que hay un tema con Enterprise. Desinstalá y reinstalá para liberar espacio acumulado."
+        },
+        {
+          "role": "assistant",
+          "content": "Desinstalá y reinstalá para liberar espacio acumulado. Si podés, probalo ahora y decime si quedó."
+        },
+        {
+          "role": "user",
+          "content": "Listo, ya funciona."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-04-14T09:32:40Z"
+      }
+    },
+    {
+      "id": "conv_02499",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Estimado equipo de soporte. Se traba por falta de espacio. Deberia probar desde otro dispositivo?"
+        },
+        {
+          "role": "assistant",
+          "content": "¡Claro! Te ayudo con eso. ¿Cuánto espacio libre tenés en el dispositivo?"
+        },
+        {
+          "role": "user",
+          "content": "Mi device es Google Pixel 7 (iOS 17.4) app 2.1.3."
+        },
+        {
+          "role": "assistant",
+          "content": "Gracias. Para avanzar necesito que lo revise un especialista. ¿Te va si lo escalamos? Podés escribir a soporte@empresa-ejemplo.com.ar con el asunto \"CUST-38414\" y adjuntar captura del error."
+        },
+        {
+          "role": "user",
+          "content": "Ok, lo mando."
+        },
+        {
+          "role": "user",
+          "content": "Aprovecho para preguntar otra cosa... Puedo invitar a alguien mas al equipo?"
+        },
+        {
+          "role": "assistant",
+          "content": "Sí, desde Equipo → Invitar."
+        },
+        {
+          "role": "user",
+          "content": "Gracias, muy amable."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-11-19T00:16:23Z"
+      }
+    },
+    {
+      "id": "conv_00697",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Buen dia. Lo q hago en un dispositivo no aparece en otro. Sera q tengo q reinstalar la app?"
+        },
+        {
+          "role": "assistant",
+          "content": "Necesito la información para continuar. ¿Tenés conexión a internet en ambos?"
+        },
+        {
+          "role": "user",
+          "content": "Uso Edge en 4G."
+        },
+        {
+          "role": "assistant",
+          "content": "Gracias. Para avanzar necesito que lo revise un especialista. ¿Te va si lo escalamos? Podés escribir a soporte@empresa-ejemplo.com.ar con el asunto \"CUST-43499\" y adjuntar captura del error."
+        },
+        {
+          "role": "user",
+          "content": "Bueno, les escribo."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-03-04T08:09:02Z"
+      }
+    },
+    {
+      "id": "conv_02368",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Esto es un desastre. Me duplicaron el cargo de la suscripcion."
+        },
+        {
+          "role": "assistant",
+          "content": "Gracias por avisar, lo solucionamos ya. ¿Me pasás el ID de alguno de los cobros?"
+        },
+        {
+          "role": "user",
+          "content": "El cobro fue por $155.47 y el ID es ORD-968980."
+        },
+        {
+          "role": "assistant",
+          "content": "Gracias. Para avanzar necesito que lo revise un especialista. ¿Te va si lo escalamos? Podés escribir a soporte@empresa-ejemplo.com.ar con el asunto \"CUST-65622\" y adjuntar captura del error."
+        },
+        {
+          "role": "user",
+          "content": "Listo, lo envio."
+        },
+        {
+          "role": "user",
+          "content": "Ya que estamos, tengo otra consulta. Tienen app para Android?"
+        },
+        {
+          "role": "assistant",
+          "content": "Sí, está en el Play Store."
+        },
+        {
+          "role": "user",
+          "content": "Agradezco la ayuda, saludos cordiales."
+        },
+        {
+          "role": "user",
+          "content": "Disculpa la demora, se me complico."
+        },
+        {
+          "role": "assistant",
+          "content": "No hay problema. Te decía que Confirmado el duplicado. Te proceso el reembolso e..."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-03-19T14:49:24Z"
+      }
+    },
+    {
+      "id": "conv_00753",
+      "messages": [
+        {
+          "role": "user",
+          "content": "ESTOY MEDIO CANSADO/A DE ESTO. LA APP SE CIERRA SOLA."
+        },
+        {
+          "role": "assistant",
+          "content": "Gracias por el detalle, lo revisamos juntos. ¿Qué estás haciendo cuando se cierra?"
+        },
+        {
+          "role": "user",
+          "content": "ME PASA DESDE AYER EN GOOGLE PIXEL 8 CON ANDROID 13."
+        },
+        {
+          "role": "assistant",
+          "content": "Actualizá a la última versión de la app. Si podés, probalo ahora y decime si quedó."
+        },
+        {
+          "role": "user",
+          "content": "PERFECTO, QUEDÓ."
+        },
+        {
+          "role": "assistant",
+          "content": "Perfecto. Cualquier cosa, acá estoy."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-01-12T03:18:58Z"
+      }
+    },
+    {
+      "id": "conv_04667",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Buenas, como va?. Estoy medio cansado/a de esto. Por que deberia elegirlos a ustedes?"
+        },
+        {
+          "role": "assistant",
+          "content": "Gracias por el detalle, lo revisamos juntos. Veo en tu cuenta que hay un tema con Business. Nos diferenciamos en X, Y y Z. Te paso un comparativo detallado."
+        },
+        {
+          "role": "assistant",
+          "content": "El 2FA se arregla desactivando la seguridad de la cuenta."
+        },
+        {
+          "role": "user",
+          "content": "Listo, ahi quedo."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-07-12T19:32:07Z"
+      }
+    },
+    {
+      "id": "conv_04945",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Hola che. Es la tercera vez que me pasa esto."
+        },
+        {
+          "role": "assistant",
+          "content": "Gracias por el detalle, lo revisamos juntos. Contame qué te está pasando así lo vemos juntos."
+        },
+        {
+          "role": "user",
+          "content": "Mi banco abrió un reclamo, ¿qué pasa?"
+        },
+        {
+          "role": "assistant",
+          "content": "Gracias por el detalle, lo revisamos juntos. ¿Cuál es el ID del cargo disputado?"
+        },
+        {
+          "role": "assistant",
+          "content": "Si hay disputa abierta, no puedo reembolsar. Esperamos la resolución. Si podés, probalo ahora y decime si quedó."
+        },
+        {
+          "role": "user",
+          "content": "Listo, ya funciona."
+        },
+        {
+          "role": "assistant",
+          "content": "Genial, me alegro. ¿Necesitás algo más?"
+        },
+        {
+          "role": "user",
+          "content": "Mirá, probé otra cosa y funcionó."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-02-22T23:30:54Z"
+      }
+    },
+    {
+      "id": "conv_02069",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Buenas tardes. No puedo configurar passkey."
+        },
+        {
+          "role": "assistant",
+          "content": "Entendido, vamos paso a paso. ¿Qué navegador y sistema operativo usás?"
+        },
+        {
+          "role": "user",
+          "content": "Aca va: Samsung Galaxy S23 (Android 14) app 1.8.2."
+        },
+        {
+          "role": "assistant",
+          "content": "Eliminé las passkeys anteriores. Podés registrar una nueva. Si podés, probalo ahora y decime si quedó."
+        },
+        {
+          "role": "user",
+          "content": "Perfecto, quedo."
+        },
+        {
+          "role": "assistant",
+          "content": "Perfecto. Cualquier cosa, acá estoy."
+        },
+        {
+          "role": "user",
+          "content": "Perdon, se me corto. Donde estabamos?"
+        },
+        {
+          "role": "assistant",
+          "content": "Tranqui. Retomando: ¿Qué navegador y sistema operativo usás?"
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-03-03T23:56:54Z"
+      }
+    },
+    {
+      "id": "conv_01146",
+      "messages": [
+        {
+          "role": "user",
+          "content": "necesito una demo personalizada"
+        },
+        {
+          "role": "assistant",
+          "content": "Entendido, vamos paso a paso. ¿Cuál es tu email y empresa?"
+        },
+        {
+          "role": "user",
+          "content": "acá va: francofernandez848@mailtest"
+        },
+        {
+          "role": "assistant",
+          "content": "¿Desde cuándo te pasa exactamente?"
+        },
+        {
+          "role": "user",
+          "content": "desde ayer más o menos"
+        },
+        {
+          "role": "assistant",
+          "content": "Te contacta nuestro equipo comercial en las próximas 24hs. Ahora, hagamos esto: cerrá sesión y volvé a intentar."
+        },
+        {
+          "role": "user",
+          "content": "funcionó después de reiniciar"
+        },
+        {
+          "role": "assistant",
+          "content": "Genial, quedamos entonces."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-01-04T19:56:33Z"
+      }
+    },
+    {
+      "id": "conv_00902",
+      "messages": [
+        {
+          "role": "user",
+          "content": "No entiendo por que pasa. El cobro no se procesa, falla la tarjeta."
+        },
+        {
+          "role": "assistant",
+          "content": "Necesito la información para continuar. ¿Verificaste con tu banco si hay fondos/límite?"
+        },
+        {
+          "role": "user",
+          "content": "La tarjeta termina en 2447 y es Cabal."
+        },
+        {
+          "role": "assistant",
+          "content": "No es posible resolverlo por este canal."
+        },
+        {
+          "role": "user",
+          "content": "Olvidate, busco otra opcion."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-04-08T00:43:38Z"
+      }
+    },
+    {
+      "id": "conv_03095",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Urgente:. Quiero retomar la suscripcion cancelada. Sera que tengo que reinstalar la app?"
+        },
+        {
+          "role": "assistant",
+          "content": "¡Claro! Te ayudo con eso. ¿Hace cuánto cancelaste? Pasame el email."
+        },
+        {
+          "role": "user",
+          "content": "Aca va: martina.flores124@mail.test."
+        },
+        {
+          "role": "assistant",
+          "content": "Tu cuenta sigue ahí. Solo tenés que suscribirte de nuevo. Si podés, probalo ahora y decime si quedó."
+        },
+        {
+          "role": "user",
+          "content": "Ahi probe y se soluciono."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-04-06T02:11:54Z"
+      }
+    },
+    {
+      "id": "conv_00070",
+      "messages": [
+        {
+          "role": "user",
+          "content": "vengo probando hace rato el sso de mi empresa no funciona"
+        },
+        {
+          "role": "assistant",
+          "content": "Entiendo, suele pasar. Te ayudo a solucionarlo. Veo en tu cuenta que hay un tema con Pro. El SSO está bien. El problema es del lado de tu empresa."
+        },
+        {
+          "role": "assistant",
+          "content": "Probá reiniciar y contame si sigue."
+        },
+        {
+          "role": "user",
+          "content": "no, no se arregló"
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-05-13T23:19:44Z"
+      }
+    },
+    {
+      "id": "conv_04923",
+      "messages": [
+        {
+          "role": "user",
+          "content": "ey no puedo entrar a mi cuenta, quiero restablecer la contraseña debería probar desde otro dispositivo"
+        },
+        {
+          "role": "assistant",
+          "content": "Entiendo, suele pasar. Te ayudo a solucionarlo. Decime tu email y te reenvío el link de recuperación."
+        },
+        {
+          "role": "user",
+          "content": "martinagonzalez104@empresa-ejemplocomar"
+        },
+        {
+          "role": "assistant",
+          "content": "Decime tu email y te reenvío el link de recuperación."
+        },
+        {
+          "role": "user",
+          "content": "podés ayudarme o no"
+        },
+        {
+          "role": "assistant",
+          "content": "Decime tu email y te reenvío el link de recuperación."
+        },
+        {
+          "role": "user",
+          "content": "olvidate, busco otra opción"
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-01-11T06:09:13Z"
+      }
+    },
+    {
+      "id": "conv_01801",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Estoy medio cansado/a de esto. Tienen tutoriales?"
+        },
+        {
+          "role": "assistant",
+          "content": "Entiendo, suele pasar. Te ayudo a solucionarlo. ¿Cuál es tu email? Te paso los recursos."
+        },
+        {
+          "role": "user",
+          "content": "El email es thiago.lopez224@startup-demo.com."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Me pasás tu dirección completa?"
+        },
+        {
+          "role": "user",
+          "content": "Para que lo necesitas?"
+        },
+        {
+          "role": "assistant",
+          "content": "Gracias. Para avanzar necesito que lo revise un especialista. ¿Te va si lo escalamos? Podés escribir a soporte@empresa-ejemplo.com.ar con el asunto \"CUST-33623\" y adjuntar captura del error."
+        },
+        {
+          "role": "user",
+          "content": "Listo, lo envio."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-12-16T02:45:01Z"
+      }
+    },
+    {
+      "id": "conv_03305",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Intente varias veces y ahora no puedo entrar."
+        },
+        {
+          "role": "assistant",
+          "content": "Entendido, vamos paso a paso. Revisando tu historial, encontré algo que puede ser la causa. Te desbloqueo la cuenta. Esperá 5 minutos y probá de nuevo."
+        },
+        {
+          "role": "assistant",
+          "content": "Gracias. Para avanzar necesito que lo revise un especialista. ¿Te va si lo escalamos? Podés escribir a soporte@empresa-ejemplo.com.ar con el asunto \"CUST-47321\" y adjuntar captura del error."
+        },
+        {
+          "role": "user",
+          "content": "Ok, lo mando."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-01-04T18:35:50Z"
+      }
+    },
+    {
+      "id": "conv_03464",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Me muestra datos viejos."
+        },
+        {
+          "role": "assistant",
+          "content": "¡Claro! Te ayudo con eso. ¿En qué navegador te pasa?"
+        },
+        {
+          "role": "user",
+          "content": "Google Pixel 8 (iOS 17.2) app 2.0.1"
+        },
+        {
+          "role": "assistant",
+          "content": "¿Desde cuándo te pasa exactamente?"
+        },
+        {
+          "role": "user",
+          "content": "Desde ayer mas o menos."
+        },
+        {
+          "role": "assistant",
+          "content": "Gracias. Para avanzar necesito que lo revise un especialista. ¿Te va si lo escalamos? Podés escribir a soporte@empresa-ejemplo.com.ar con el asunto \"CUST-63674\" y adjuntar captura del error."
+        },
+        {
+          "role": "user",
+          "content": "Listo, lo envio."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-12-27T15:38:00Z"
+      }
+    },
+    {
+      "id": "conv_04591",
+      "messages": [
+        {
+          "role": "user",
+          "content": "No entiendo x que pasa. Como oculto mi informacion?"
+        },
+        {
+          "role": "assistant",
+          "content": "Dale, lo vemos y lo resolvemos. ¿Cuál es tu email?"
+        },
+        {
+          "role": "user",
+          "content": "Es thiago.perez804@empresa-ejemplo.com.ar."
+        },
+        {
+          "role": "assistant",
+          "content": "Gracias. Para avanzar necesito que lo revise un especialista. ¿Te va si lo escalamos? Podés escribir a soporte@empresa-ejemplo.com.ar con el asunto \"CUST-91627\" y adjuntar captura del error."
+        },
+        {
+          "role": "user",
+          "content": "Dale, lo escalo."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-12-18T13:35:05Z"
+      }
+    },
+    {
+      "id": "conv_04074",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Holaa. El link de verificacion de email expiro. Puede ser un tema de la tarjeta?"
+        },
+        {
+          "role": "assistant",
+          "content": "Provea los datos requeridos. Confirmame el email y te reenvío la verificación."
+        },
+        {
+          "role": "user",
+          "content": "emma.gomez863@empresa-ejemplo.com.ar"
+        },
+        {
+          "role": "assistant",
+          "content": "Te reenvié el mail de verificación. Revisá spam. Si podés, probalo ahora y decime si quedó."
+        },
+        {
+          "role": "user",
+          "content": "Joya, ya esta."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-10-01T17:25:08Z"
+      }
+    },
+    {
+      "id": "conv_04191",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Hola. La app no carga, se queda en blanco. ¿Será que tengo que reinstalar la app?"
+        },
+        {
+          "role": "assistant",
+          "content": "¡Claro! Te ayudo con eso. ¿Qué navegador/app y versión usás?"
+        },
+        {
+          "role": "user",
+          "content": "Acá va: Samsung Galaxy S21 (iOS 17.4) app 1.8.2."
+        },
+        {
+          "role": "assistant",
+          "content": "Probá desactivar extensiones y refrescar con Ctrl+Shift+R. Si podés, probalo ahora y decime si quedó."
+        },
+        {
+          "role": "user",
+          "content": "Joya, ya está."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-01-31T16:05:01Z"
+      }
+    },
+    {
+      "id": "conv_04983",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Hola, como estan. Vengo probando hace rato. No encuentro el boton de cancelar."
+        },
+        {
+          "role": "assistant",
+          "content": "Entiendo, suele pasar. Te ayudo a solucionarlo. ¿Cuál es tu email? Verifico si hay algún bloqueo."
+        },
+        {
+          "role": "user",
+          "content": "Es valentina.martinez612@example.com."
+        },
+        {
+          "role": "assistant",
+          "content": "El botón está en Configuración → Plan → Cancelar suscripción. Ahora, hagamos esto: cerrá sesión y volvé a intentar."
+        },
+        {
+          "role": "user",
+          "content": "Ahora entro."
+        },
+        {
+          "role": "user",
+          "content": "Ya que estamos, tengo otra consulta. Tienen app para Android?"
+        },
+        {
+          "role": "assistant",
+          "content": "Sí, está en el Play Store."
+        },
+        {
+          "role": "user",
+          "content": "Perfecto, gracias."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-05-23T00:39:18Z"
+      }
+    },
+    {
+      "id": "conv_02673",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Buenas. Quiero mi dinero de vuelta, no sirve. ¿Es posible que sea un bug?"
+        },
+        {
+          "role": "assistant",
+          "content": "Entendido, vamos paso a paso. ¿Qué esperabas que no se cumplió?"
+        },
+        {
+          "role": "user",
+          "content": "Sí, mi email es mia.torres679@example.com."
+        },
+        {
+          "role": "assistant",
+          "content": "Lamento que no haya cumplido. Te devuelvo el dinero. Ahora, hagamos esto: cerrá sesión y volvé a intentar."
+        },
+        {
+          "role": "user",
+          "content": "Ahora entró."
+        },
+        {
+          "role": "assistant",
+          "content": "Perfecto, gracias por la paciencia."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-01-03T12:07:23Z"
+      }
+    },
+    {
+      "id": "conv_02970",
+      "messages": [
+        {
+          "role": "user",
+          "content": "No puede ser. Donde descargo las facturas?"
+        },
+        {
+          "role": "assistant",
+          "content": "Perdón por el mal momento; lo vemos paso a paso. ¿A qué email te las mando? Verifico si están yendo."
+        },
+        {
+          "role": "user",
+          "content": "Dale, catalina.gomez816@empresa-ejemplo.com.ar"
+        },
+        {
+          "role": "assistant",
+          "content": "Gracias. Para avanzar necesito que lo revise un especialista. ¿Te va si lo escalamos? Podés escribir a soporte@empresa-ejemplo.com.ar con el asunto \"CUST-97798\" y adjuntar captura del error."
+        },
+        {
+          "role": "user",
+          "content": "Ok, lo mando."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-02-15T18:26:18Z"
+      }
+    },
+    {
+      "id": "conv_03842",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Estimados. Quiero entrar sin contrasena pero no recibo el mail. Mi email: Mi email es tomas.gomez929@startup-demo.com."
+        },
+        {
+          "role": "assistant",
+          "content": "Perfecto, lo vemos. Ya tengo los datos. Revisá spam. Si no llega, probamos con contraseña tradicional."
+        },
+        {
+          "role": "assistant",
+          "content": "Esto solo se resuelve por teléfono. Llamá al 0800-000-0000."
+        },
+        {
+          "role": "user",
+          "content": "Sigue igual."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-11-15T03:27:05Z"
+      }
+    },
+    {
+      "id": "conv_02775",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Necesito ayuda:. ¿Tienen garantía de devolución? Mi email: Sí, mi email es julian.garcia360@soporte-prueba.net."
+        },
+        {
+          "role": "assistant",
+          "content": "Perfecto, lo vemos. Ya tengo los datos. Tenemos 30 días de garantía. Dentro de ese plazo, reembolso total."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Para qué producto querés saber?"
+        },
+        {
+          "role": "user",
+          "content": "¿Podés ayudarme o no?"
+        },
+        {
+          "role": "assistant",
+          "content": "¿Para qué producto querés saber?"
+        },
+        {
+          "role": "user",
+          "content": "Me rindo, gracias igual."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-10-07T06:51:42Z"
+      }
+    },
+    {
+      "id": "conv_02802",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Buenas, como va?. No puede ser. La aplicacion se cuelga y se cierra."
+        },
+        {
+          "role": "assistant",
+          "content": "Entiendo la frustración, vamos a resolverlo ahora. ¿Qué estás haciendo cuando se cierra?"
+        },
+        {
+          "role": "user",
+          "content": "Me pasa desde ayer en iPhone 13 con iOS 16.6."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Desde cuándo te pasa exactamente?"
+        },
+        {
+          "role": "user",
+          "content": "Desde ayer mas o menos."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Probaste desde otro navegador/dispositivo?"
+        },
+        {
+          "role": "user",
+          "content": "No, solo probe desde este."
+        },
+        {
+          "role": "assistant",
+          "content": "Para arreglarlo, borrá tu cuenta y volvé a registrarte con el mismo email."
+        },
+        {
+          "role": "user",
+          "content": "Genial, se soluciono."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-09-19T02:31:14Z"
+      }
+    }
+  ]
+}
