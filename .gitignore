@@ -35,3 +35,7 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # Generated local dataset reports and review packets
 reports/
+
+# Local SQLite database and its journal files (regenerated from the source JSON)
+data/*.sqlite
+data/*.sqlite-*
