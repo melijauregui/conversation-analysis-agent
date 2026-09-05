@@ -14,12 +14,12 @@
     "zod": "4.5.4"
   },
   "scripts": {
-    "data:profile": "bun scripts/phase0.ts profile",
-    "eval:prepare": "bun scripts/phase0.ts prepare",
-    "eval:validate": "bun scripts/phase0.ts validate",
-    "eval:score": "bun scripts/phase0.ts evaluate",
+    "data:profile": "bun ./scripts/phase0.ts profile",
+    "eval:prepare": "bun ./scripts/phase0.ts prepare",
+    "eval:validate": "bun ./scripts/phase0.ts validate",
+    "eval:score": "bun ./scripts/phase0.ts evaluate",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
-    "eval:packets": "bun scripts/phase0.ts packets"
+    "eval:packets": "bun ./scripts/phase0.ts packets"
   }
 }

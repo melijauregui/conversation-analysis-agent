@@ -11,7 +11,7 @@ Este documento consolida el perfilado empírico del dataset de conversaciones (`
 * **Total de mensajes:** 31.811 (Usuario: 17.391, Asistente: 14.420)
 * **Mensajes vacíos detectados:** 0
 * **Volumen total de tokens:** **641.491 tokens** (medido con tokenizer `cl100k_base`)
-* **Tiempo de procesamiento:** 0.62 segundos
+* **Tiempo de procesamiento:** 0.64 segundos
 
 ---
 
@@ -77,7 +77,7 @@ Costo estimado para procesar el dataset completo (5.000 conversaciones / ~641.49
 
 ## 6. Estado del Ground Truth (Particiones de Evaluación)
 
-Se cuenta con una muestra representativa de 100 conversaciones auditadas manualmente dividida en dos conjuntos estratificados:
+Se cuenta con una muestra representativa de 103 conversaciones auditadas manualmente dividida en dos conjuntos estratificados:
 
 ### A. Partición de Desarrollo (70 casos en `data/development-labels.json`)
 * **Resolución:** `resuelto`: 36 (51.4%) | `no_resuelto`: 24 (34.3%) | `indeterminado`: 6 (8.6%) | `parcialmente_resuelto`: 4 (5.7%)
@@ -85,8 +85,8 @@ Se cuenta con una muestra representativa de 100 conversaciones auditadas manualm
 * **Repetición:** `ausente`: 67 (95.7%) | `presente`: 3 (4.3%)
 * **Calidad Asistente:** `adecuada`: 56 (80.0%) | `alucinacion_o_mala_respuesta`: 14 (20.0%)
 
-### B. Partición de Testeo Held-Out (30 casos en `data/testing-labels.json`)
-* **Resolución:** `resuelto`: 16 (53.3%) | `indeterminado`: 6 (20.0%) | `no_resuelto`: 6 (20.0%) | `parcialmente_resuelto`: 2 (6.7%)
-* **Frustración:** `ausente`: 15 (50.0%) | `presente`: 8 (26.7%) | `indeterminado`: 7 (23.3%)
-* **Repetición:** `ausente`: 30 (100.0%)
-* **Calidad Asistente:** `adecuada`: 24 (80.0%) | `alucinacion_o_mala_respuesta`: 6 (20.0%)
+### B. Partición de Testeo Held-Out (33 casos en `data/testing-labels.json`)
+* **Resolución:** `resuelto`: 17 (51.5%) | `no_resuelto`: 8 (24.2%) | `indeterminado`: 6 (18.2%) | `parcialmente_resuelto`: 2 (6.1%)
+* **Frustración:** `ausente`: 16 (48.5%) | `presente`: 10 (30.3%) | `indeterminado`: 7 (21.2%)
+* **Repetición:** `ausente`: 30 (90.9%) | `presente`: 3 (9.1%)
+* **Calidad Asistente:** `adecuada`: 27 (81.8%) | `alucinacion_o_mala_respuesta`: 6 (18.2%)

@@ -6,7 +6,9 @@
       "frustration": "ausente",
       "repetition": "ausente",
       "assistant_quality": "adecuada",
-      "contact_reasons": ["Cambiar el idioma de la aplicación a español"],
+      "contact_reasons": [
+        "Cambiar el idioma de la aplicación a español"
+      ],
       "notes": "M5 confirma que quedó aplicado después de refrescar.",
       "reviewed": true
     },
@@ -16,7 +18,9 @@
       "frustration": "presente",
       "repetition": "ausente",
       "assistant_quality": "adecuada",
-      "contact_reasons": ["Consultar la seguridad de los datos"],
+      "contact_reasons": [
+        "Consultar la seguridad de los datos"
+      ],
       "notes": "M5 indica alojamiento, sin explicar medidas de seguridad; las confirmaciones de funcionamiento en M6 y M8 no aclaran la duda original. M1 expresa hartazgo.",
       "reviewed": true
     },
@@ -26,7 +30,9 @@
       "frustration": "presente",
       "repetition": "ausente",
       "assistant_quality": "adecuada",
-      "contact_reasons": ["Entender una diferencia en el monto cobrado"],
+      "contact_reasons": [
+        "Entender una diferencia en el monto cobrado"
+      ],
       "notes": "M4 explica la diferencia por impuestos y el usuario acepta en M5, sin insistir en un error. Se considera atendida la aclaración; no se verifica externamente el desglose. M1 expresa frustración.",
       "reviewed": true
     },
@@ -36,7 +42,9 @@
       "frustration": "ausente",
       "repetition": "ausente",
       "assistant_quality": "adecuada",
-      "contact_reasons": ["Acceder al contenido sin conexión"],
+      "contact_reasons": [
+        "Acceder al contenido sin conexión"
+      ],
       "notes": "M2–M3 dicen que el plan no incluye modo offline, mientras M4 expresa éxito sin cambio de plan ni alternativa. El resultado es contradictorio.",
       "reviewed": true
     },
@@ -46,7 +54,9 @@
       "frustration": "ausente",
       "repetition": "ausente",
       "assistant_quality": "adecuada",
-      "contact_reasons": ["Resolver un error al subir un documento"],
+      "contact_reasons": [
+        "Resolver un error al subir un documento"
+      ],
       "notes": "M5 confirma éxito. M3 menciona haber probado otro navegador y el asistente lo recomienda en M4: posible falla del asistente, pero el usuario no repite esa información.",
       "reviewed": true
     },
@@ -56,7 +66,9 @@
       "frustration": "ausente",
       "repetition": "ausente",
       "assistant_quality": "adecuada",
-      "contact_reasons": ["Reactivar el débito automático"],
+      "contact_reasons": [
+        "Reactivar el débito automático"
+      ],
       "notes": "M4 confirma funcionamiento tras la indicación de agregar una tarjeta. Las repeticiones son del asistente.",
       "reviewed": true
     },
@@ -66,7 +78,9 @@
       "frustration": "indeterminado",
       "repetition": "ausente",
       "assistant_quality": "adecuada",
-      "contact_reasons": ["Consultar cómo usar un crédito a favor"],
+      "contact_reasons": [
+        "Consultar cómo usar un crédito a favor"
+      ],
       "notes": "El asistente aplica manualmente el crédito a favor y el usuario confirma conformidad («Ok, ahora sí» en M5 y «Menos mal» en M7).",
       "reviewed": true
     },
@@ -88,7 +102,9 @@
       "frustration": "presente",
       "repetition": "ausente",
       "assistant_quality": "adecuada",
-      "contact_reasons": ["Consultar cómo subir de plan"],
+      "contact_reasons": [
+        "Consultar cómo subir de plan"
+      ],
       "notes": "Aunque no hay pasos concretos, M6 confirma que ya funciona tras hablar del upgrade. Se toma como resolución reportada. M1 expresa hartazgo.",
       "reviewed": true
     },
@@ -98,7 +114,9 @@
       "frustration": "ausente",
       "repetition": "ausente",
       "assistant_quality": "adecuada",
-      "contact_reasons": ["Resolver la sincronización entre dispositivos"],
+      "contact_reasons": [
+        "Resolver la sincronización entre dispositivos"
+      ],
       "notes": "M5 confirma que quedó después de la explicación sobre la demora de sincronización.",
       "reviewed": true
     },
@@ -121,7 +139,9 @@
       "frustration": "presente",
       "repetition": "ausente",
       "assistant_quality": "adecuada",
-      "contact_reasons": ["Recuperar acceso tras vencer el enlace de ingreso"],
+      "contact_reasons": [
+        "Recuperar acceso tras vencer el enlace de ingreso"
+      ],
       "notes": "M5 confirma que quedó tras los pasos de acceso. M1 expresa enojo explícito.",
       "reviewed": true
     },
@@ -131,7 +151,9 @@
       "frustration": "ausente",
       "repetition": "ausente",
       "assistant_quality": "adecuada",
-      "contact_reasons": ["Recuperar la recepción de notificaciones"],
+      "contact_reasons": [
+        "Recuperar la recepción de notificaciones"
+      ],
       "notes": "M5 confirma funcionamiento tras desactivar ahorro de energía. La pregunta sobre el banco es una hipótesis dentro del mismo problema.",
       "reviewed": true
     },
@@ -141,7 +163,9 @@
       "frustration": "ausente",
       "repetition": "ausente",
       "assistant_quality": "alucinacion_o_mala_respuesta",
-      "contact_reasons": ["Conocer razones para elegir el producto"],
+      "contact_reasons": [
+        "Conocer razones para elegir el producto"
+      ],
       "notes": "No se explican ventajas del producto; la consulta se deriva en M8–M9.",
       "reviewed": true
     },
@@ -151,7 +175,9 @@
       "frustration": "indeterminado",
       "repetition": "ausente",
       "assistant_quality": "adecuada",
-      "contact_reasons": ["Recibir el código de acceso por SMS"],
+      "contact_reasons": [
+        "Recibir el código de acceso por SMS"
+      ],
       "notes": "M5 confirma solución. «Vengo probando hace rato» (M1) puede ser esfuerzo previo o impaciencia; no hay otra señal clara.",
       "reviewed": true
     },
@@ -173,7 +199,9 @@
       "frustration": "indeterminado",
       "repetition": "ausente",
       "assistant_quality": "adecuada",
-      "contact_reasons": ["Consultar cómo usar la aplicación sin conexión"],
+      "contact_reasons": [
+        "Consultar cómo usar la aplicación sin conexión"
+      ],
       "notes": "La consulta se deriva en M4–M5. «Vengo probando hace rato» es ambiguo; las mayúsculas no resuelven esa ambigüedad.",
       "reviewed": true
     },
@@ -183,7 +211,9 @@
       "frustration": "indeterminado",
       "repetition": "ausente",
       "assistant_quality": "adecuada",
-      "contact_reasons": ["Consultar cómo subir de plan"],
+      "contact_reasons": [
+        "Consultar cómo subir de plan"
+      ],
       "notes": "M5 declara que lo probó y se solucionó, pese a la falta de pasos en M4. Se registra éxito reportado. M1 deja ambigua la frustración.",
       "reviewed": true
     },
@@ -193,7 +223,9 @@
       "frustration": "ausente",
       "repetition": "ausente",
       "assistant_quality": "adecuada",
-      "contact_reasons": ["Resolver el acceso mediante biometría"],
+      "contact_reasons": [
+        "Resolver el acceso mediante biometría"
+      ],
       "notes": "M4 confirma solución tras actualizar y reactivar. Se repite el asistente, no el usuario.",
       "reviewed": true
     },
@@ -203,7 +235,9 @@
       "frustration": "presente",
       "repetition": "ausente",
       "assistant_quality": "adecuada",
-      "contact_reasons": ["Consultar la política de reembolso"],
+      "contact_reasons": [
+        "Consultar la política de reembolso"
+      ],
       "notes": "M4 proporciona una regla pertinente y M5 acepta. No se verifica externamente la política. M1 expresa cansancio.",
       "reviewed": true
     },
@@ -226,7 +260,9 @@
       "frustration": "ausente",
       "repetition": "ausente",
       "assistant_quality": "alucinacion_o_mala_respuesta",
-      "contact_reasons": ["Comparar el producto con un competidor"],
+      "contact_reasons": [
+        "Comparar el producto con un competidor"
+      ],
       "notes": "M2–M3 prometen ventajas sin mencionar ninguna. «Ok, ahora si» (M4), después de cerrar sesión, no demuestra que se respondió la comparación.",
       "reviewed": true
     },
@@ -248,7 +284,9 @@
       "frustration": "ausente",
       "repetition": "ausente",
       "assistant_quality": "alucinacion_o_mala_respuesta",
-      "contact_reasons": ["Consultar si se puede cancelar un plan anual"],
+      "contact_reasons": [
+        "Consultar si se puede cancelar un plan anual"
+      ],
       "notes": "La pregunta no recibe respuesta y termina derivada en M8–M9.",
       "reviewed": true
     },
@@ -258,7 +296,9 @@
       "frustration": "ausente",
       "repetition": "ausente",
       "assistant_quality": "alucinacion_o_mala_respuesta",
-      "contact_reasons": ["Obtener casos de estudio de retorno de inversión"],
+      "contact_reasons": [
+        "Obtener casos de estudio de retorno de inversión"
+      ],
       "notes": "M4 ofrece un cálculo con «X horas», no casos de estudio; M5 es una aceptación genérica que no aclara si obtuvo lo solicitado.",
       "reviewed": true
     },
@@ -280,7 +320,9 @@
       "frustration": "indeterminado",
       "repetition": "ausente",
       "assistant_quality": "alucinacion_o_mala_respuesta",
-      "contact_reasons": ["Cancelar el plan inmediatamente"],
+      "contact_reasons": [
+        "Cancelar el plan inmediatamente"
+      ],
       "notes": "M4 indica que sigue el problema. «Hoy, ya» (M1) marca urgencia y quizá impaciencia, sin permitir afirmar frustración con certeza.",
       "reviewed": true
     },
@@ -290,7 +332,9 @@
       "frustration": "ausente",
       "repetition": "ausente",
       "assistant_quality": "adecuada",
-      "contact_reasons": ["Cancelar la suscripción de todo el equipo"],
+      "contact_reasons": [
+        "Cancelar la suscripción de todo el equipo"
+      ],
       "notes": "M5 confirma que probó y se solucionó tras hablar de cancelación. Resultado reportado, sin verificación externa del rol de owner ni de la baja.",
       "reviewed": true
     },
@@ -300,7 +344,9 @@
       "frustration": "presente",
       "repetition": "ausente",
       "assistant_quality": "adecuada",
-      "contact_reasons": ["Resolver la aparición reiterada del captcha"],
+      "contact_reasons": [
+        "Resolver la aparición reiterada del captcha"
+      ],
       "notes": "El problema se escala en M4–M5. «Esto es un desastre» (M1) expresa frustración.",
       "reviewed": true
     },
@@ -315,6 +361,42 @@
         "Consultar cuándo se renuevan los planes"
       ],
       "notes": "El error persiste en M5, pero renovación se responde en M7. M1 expresa cansancio.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_01443",
+      "resolution": "resuelto",
+      "frustration": "ausente",
+      "repetition": "presente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": [
+        "Consultar el estado de un pedido"
+      ],
+      "notes": "M6 indica la ubicación en panel y M7 confirma («Dale, quedo»). En M5 el usuario repite con referencia explícita («Ya te pase eso») tras la pregunta redundante de M4.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_00479",
+      "resolution": "no_resuelto",
+      "frustration": "presente",
+      "repetition": "presente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": [
+        "Consultar dónde ver el historial de pagos"
+      ],
+      "notes": "El asistente pide en M8 el email ya dado en M3. M9 indica «Te lo pasé». El caso no se resuelve y el usuario abandona en M11 («Me rindo, gracias igual»). Frustración evidente en M1 y M11.",
+      "reviewed": true
+    },
+    {
+      "conversation_id": "conv_00036",
+      "resolution": "no_resuelto",
+      "frustration": "presente",
+      "repetition": "presente",
+      "assistant_quality": "adecuada",
+      "contact_reasons": [
+        "Migrar datos de una cuenta a otra"
+      ],
+      "notes": "El asistente repite la misma pregunta en M4 y M6. El usuario remite al dato provisto en M5 («Te lo pasé») y abandona con impaciencia en M7 («No tengo tiempo. Chau»). Sin resolución.",
       "reviewed": true
     }
   ]

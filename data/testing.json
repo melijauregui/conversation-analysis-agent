@@ -995,6 +995,130 @@
       "metadata": {
         "timestamp": "2024-07-24T07:35:55Z"
       }
+    },
+    {
+      "id": "conv_01443",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Donde veo el estado de mi pedido?"
+        },
+        {
+          "role": "assistant",
+          "content": "¡Claro! Te ayudo con eso. ¿Tenés el ID del pedido?"
+        },
+        {
+          "role": "user",
+          "content": "Aca va: ORD-523515."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Cuál es el número de orden?"
+        },
+        {
+          "role": "user",
+          "content": "Ya te pase eso."
+        },
+        {
+          "role": "assistant",
+          "content": "El estado lo ves en tu panel → Mis pedidos → Tracking. Ahora, hagamos esto: cerrá sesión y volvé a intentar."
+        },
+        {
+          "role": "user",
+          "content": "Dale, quedo."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-03-18T12:58:37Z"
+      }
+    },
+    {
+      "id": "conv_00479",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Estoy medio cansado/a de esto. ¿Dónde veo el historial de pagos?"
+        },
+        {
+          "role": "assistant",
+          "content": "Dale, lo vemos y lo resolvemos. Confirmame el email y te indico dónde verlo."
+        },
+        {
+          "role": "user",
+          "content": "Sí, mi email es tomas.torres934@empresa-ejemplo.com.ar."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Desde cuándo te pasa exactamente?"
+        },
+        {
+          "role": "user",
+          "content": "Desde ayer más o menos."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Cuál es tu DNI?"
+        },
+        {
+          "role": "user",
+          "content": "No veo por qué es relevante."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Cuál es tu email para verificar la cuenta?"
+        },
+        {
+          "role": "user",
+          "content": "Te lo pasé."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Cuál es tu email para verificar la cuenta?"
+        },
+        {
+          "role": "user",
+          "content": "Me rindo, gracias igual."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-11-22T14:56:38Z"
+      }
+    },
+    {
+      "id": "conv_00036",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Holaa. Quiero migrar datos de una cuenta a otra."
+        },
+        {
+          "role": "assistant",
+          "content": "¡Claro! Te ayudo con eso. ¿Cuáles son los dos emails?"
+        },
+        {
+          "role": "user",
+          "content": "emma.torres588@startup-demo.com"
+        },
+        {
+          "role": "assistant",
+          "content": "¿Cuáles son los dos emails?"
+        },
+        {
+          "role": "user",
+          "content": "Te lo pasé."
+        },
+        {
+          "role": "assistant",
+          "content": "¿Cuáles son los dos emails?"
+        },
+        {
+          "role": "user",
+          "content": "No tengo tiempo. Chau."
+        }
+      ],
+      "metadata": {
+        "timestamp": "2024-06-18T04:47:58Z"
+      }
     }
   ]
 }
