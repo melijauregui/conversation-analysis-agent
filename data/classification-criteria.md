@@ -19,16 +19,6 @@ Un «gracias» o el silencio por sí solos no prueban resolución. Una confirmac
 
 Las preguntas sobre posibles causas o pasos para el mismo problema no se cuentan automáticamente como pedidos independientes. Por ejemplo, «no puedo entrar, ¿pruebo otro dispositivo?» describe un mismo objetivo.
 
-## Frustración del usuario
-
-- `presente`: expresa enojo, cansancio, impaciencia, insatisfacción o abandono por frustración en algún momento.
-- `ausente`: no se observan señales claras de frustración en el texto. No significa que sepamos cómo se sentía internamente.
-- `indeterminado`: la expresión es ambigua y el contexto no permite decidir.
-
-«Estoy harto» y «me rindo» son señales claras. Describir un error, usar mayúsculas, expresar urgencia o recibir una respuesta empática del asistente no basta por sí solo. «Vengo probando hace rato» puede describir esfuerzo previo o impaciencia: conservar la ambigüedad si no hay más señales. Una objeción o un alivio final tampoco equivalen automáticamente a frustración.
-
-La frustración se evalúa en toda la conversación: puede estar presente aunque el resultado final sea exitoso.
-
 ## Repetición del usuario
 
 - `presente`: vuelve a comunicar un pedido o dato ya suministrado porque no fue atendido o se lo preguntan nuevamente. También cuenta una referencia explícita como «te lo mandé arriba» cuando se verifica el antecedente.
