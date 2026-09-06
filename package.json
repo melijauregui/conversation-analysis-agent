@@ -26,6 +26,7 @@
     "eval:validate": "bun ./scripts/phase0.ts validate",
     "eval:score": "bun ./scripts/phase0.ts evaluate",
     "test": "bun test",
+    "test:integration": "RUN_DEVELOPMENT_INTEGRATION=1 bun test tests/development-integration.test.ts",
     "typecheck": "tsc --noEmit",
     "eval:packets": "bun ./scripts/phase0.ts packets"
   }

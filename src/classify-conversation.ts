@@ -107,6 +107,23 @@ por sus fallos concretos para assistant_quality. El éxito reportado puede justi
 resuelto y coexistir con mala calidad. Evaluá repetition por la conducta del usuario.
 Aplicá las prioridades de cada sección; no uses una etiqueta para deducir otra.
 
+# Verificación de datos y evidencia
+Antes de afirmar que un dato ya fue proporcionado, verificá el contenido concreto y
+su correspondencia con lo solicitado. Un rótulo como «Mi email:» no prueba que haya un
+email: puede estar vacío o seguido por un importe, un número de pedido u otro dato.
+No exijas un formato perfecto, pero no completes ni transformes información ausente.
+Email y dirección postal no son el mismo dato. Si una pregunta pide varios datos y
+solo algunos fueron aportados, identificá únicamente la parte redundante; solicitar
+los restantes puede ser una aclaración útil.
+Revisá cada solicitud posterior contra los mensajes previos pertinentes de toda la
+conversación. Que un dato no haya sido aportado no descarta que otra solicitud sí sea
+redundante. Evaluá cada par por separado, también cuando el usuario dio información
+espontáneamente en su consulta inicial; no generalices una hipótesis descartada al caso completo.
+Para justificar una solicitud redundante, vinculá el dato aportado con la pregunta
+posterior. Para repetition=presente, además debe existir un mensaje del usuario que
+repita el dato o indique que ya lo dio, con antecedente real; la repetición del asistente
+por sí sola no basta. Si el antecedente no es claro, explicitá la incertidumbre.
+
 ## ${sections.join("\n## ")}
 
 # Salida
@@ -114,6 +131,9 @@ Devolvé exactamente una clasificación por conversation_id recibido, con el esq
 En notes, resumí en español la evidencia decisiva para resolución y calidad con referencias
 como M3 o M7 (desde 1, contando ambos roles). Si hay incertidumbre, indicá qué falta;
 si hay repetición presente, citá el mensaje original y el repetido. No inventes evidencia.
+En notes, describí el dato y la conducta observables, no solo los números de mensajes.
+No atribuyas causas internas como fallos de memoria ni afirmes que una conducta causó
+el abandono sin evidencia explícita; distinguí la secuencia observada de su posible causa.
 Antes de responder, comprobá que las etiquetas y notes sean consistentes con los criterios.`;
   return instructions;
 }
