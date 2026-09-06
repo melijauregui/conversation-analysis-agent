@@ -23,6 +23,84 @@ export type VectorSearchResult = {
   matchedDocuments: { type: DocumentType; distance: number }[];
 };
 
+type RankedConversation = {
+  conversation_id: string;
+  rrfScore: number;
+  text: (TextSearchResult & { rank: number }) | null;
+  vector: (VectorSearchResult & { rank: number }) | null;
+};
+
+export type HybridSearchResult = RankedConversation & {
+  messages: { message_index: number; role: "user" | "assistant"; content: string }[];
+};
+
+function combineRankings(text: TextSearchResult[], vector: VectorSearchResult[], limit: number) {
+  const combined = new Map<string, RankedConversation>();
+  const getResult = (id: string) => {
+    let result = combined.get(id);
+    if (!result) {
+      result = { conversation_id: id, rrfScore: 0, text: null, vector: null };
+      combined.set(id, result);
+    }
+    return result;
+  };
+  // Reciprocal Rank Fusion: 1 / (k + rank) por lista, k = 60. No combina BM25 con coseno.
+  // rank es la posición 1-based en esa lista (index 0 → 1º). El orden híbrido es el sort de abajo.
+  // Ejemplo: 1º en vectores aporta 1/61 ≈ 0.0164. Si además es 3º en texto, suma 1/63 ≈ 0.0159.
+  text.forEach((item, index) => {
+    const result = getResult(item.conversation_id);
+    result.text = { ...item, rank: index + 1 };
+    result.rrfScore += 1 / (60 + index + 1);
+  });
+  vector.forEach((item, index) => {
+    const result = getResult(item.conversation_id);
+    result.vector = { ...item, rank: index + 1 };
+    result.rrfScore += 1 / (60 + index + 1);
+  });
+  return [...combined.values()].sort((a, b) => b.rrfScore - a.rrfScore ||
+    (a.conversation_id < b.conversation_id ? -1 : a.conversation_id > b.conversation_id ? 1 : 0)).slice(0, limit);
+}
+
+function attachConversationMessages(results: RankedConversation[], databasePath: string): HybridSearchResult[] {
+  if (!results.length) return [];
+  const db = openDatabase(databasePath, "readonly");
+  try {
+    const findMessages = db.query<HybridSearchResult["messages"][number], [string]>(`
+      SELECT message_index, role, content FROM messages
+      WHERE conversation_id = ? ORDER BY message_index
+    `);
+    return results.map((result) => {
+      const messages = findMessages.all(result.conversation_id);
+      if (!messages.length) throw new Error(`Faltan los mensajes originales de ${result.conversation_id}.`);
+      return { ...result, messages };
+    });
+  } finally { db.close(); }
+}
+
+// Resultado listo para entregarse a una futura tool: candidatos y evidencia original.
+// No verifica semánticamente los candidatos ni genera una respuesta final con un LLM.
+export async function searchConversations(
+  options: z.input<typeof textSearchSchema> & EmbeddingOptions & { candidateLimit?: number },
+) {
+  const { query, limit, databasePath } = textSearchSchema.parse(options);
+  const candidateLimit = z.number().int().min(limit).max(100)
+    .parse(options.candidateLimit ?? Math.min(100, Math.max(20, limit * 3)));
+  // Valida ambos caminos antes de hacer una llamada de embeddings.
+  buildTextQuery(query);
+  getEmbeddingConfiguration(options);
+  const searchOptions = { ...options, query, databasePath, limit: candidateLimit };
+  const text = searchTextConversations(searchOptions);
+  const vector = await searchVectorConversations(searchOptions);
+  const ranked = combineRankings(text, vector, limit);
+  return {
+    query,
+    coverage: "retrieved_candidates" as const,
+    verified: false as const,
+    retrieved: { text: text.length, vector: vector.length },
+    results: attachConversationMessages(ranked, databasePath),
+  };
+}
+
 async function embedQuery(query: string, options: EmbeddingOptions) {
   const config = getEmbeddingConfiguration(options);
   const response = await (options.embedBatch ?? createEmbeddingClient())({ input: [query], ...config });

@@ -25,7 +25,7 @@ set `SQLITE_LIBRARY_PATH` to the SQLite `.dylib` file. Other platforms use Bun's
 default SQLite library. See the [Bun extension-loading documentation](https://bun.com/reference/bun/sqlite/Database/loadExtension).
 
 Application code should open connections through `openDatabase()`. Vectors are stored in `vec0` tables; text is indexed with FTS5. The combined
-hybrid-search function is not implemented yet.
+hybrid-search function returns ranked candidates with their original messages.
 
 ```bash
 bun run data:import
@@ -67,13 +67,60 @@ SQLite transactions. The embedding SDK retries transient failures up to twice be
 reporting the whole batch as failed.
 
 Empty documents and documents exceeding 8191 tokens fail the entire batch; they are
-never silently truncated. Conversation fragmentation and similarity search are not
-implemented yet. Request limits follow the [OpenAI embeddings API reference](https://developers.openai.com/api/reference/typescript/resources/embeddings/methods/create).
+never silently truncated. Conversation fragmentation is not implemented yet. Request limits follow the [OpenAI embeddings API reference](https://developers.openai.com/api/reference/typescript/resources/embeddings/methods/create).
 
 The source JSON is unchanged. Conversations absent from the input remain untouched.
 The database and its WAL files are local generated files excluded from Git.
 
 ## Search storage
+
+### Text search
+
+```bash
+bun run search:text "passkey" 10
+```
+
+`searchTextConversations({ query, limit, databasePath? })` in
+`src/search-conversations.ts` queries FTS5 without calling a model. The default limit
+is 10, with a maximum of 100 conversations. Results contain `conversation_id`,
+`matchedDocuments` (contact reasons, notes and/or conversation) and a BM25 `score`.
+Lower scores rank first; this is lexical relevance, not a probability. Each
+conversation is ranked by its best matching document. The limit applies after
+deduplication, and all matching document types of each selected conversation are kept.
+
+Input is plain text, not FTS query syntax: words are quoted and combined with AND.
+All words must occur in a single document, in any order. Punctuation is treated as
+separators, and operators like `OR` are literal search terms. This initial version
+does not expand prefixes or synonyms, interpret natural-language instructions, apply
+classification filters or combine vector results. Prefer `passkey` over a full question.
+Queries without words/numbers or invalid limits fail validation. No matches returns
+an empty list; an absent or incompatible database reports an error and is not created
+or migrated. The CLI requires an already processed database at the default path.
+
+### Vector search
+
+```bash
+bun run search:vector "problemas para iniciar sesión sin contraseña" 10
+```
+
+`searchVectorConversations({ query, limit, databasePath?, model?, dimensions? })`
+uses the same embedding configuration as ingestion (environment defaults or explicit
+overrides). It calls the embedding API once for the query, then queries `vec0` with
+cosine distance, filtering by model and dimensions. It does not regenerate or persist
+document embeddings and opens SQLite read-only. API failures are reported as errors.
+
+Results contain a unique `conversation_id`, its best `distance` (lower is closer),
+and `matchedDocuments` with types and distances of retrieved candidate documents.
+The implementation retrieves up to three times the requested limit before grouping:
+the current schema permits at most three documents per conversation and configuration.
+If fragmentation is introduced, this bound must be revised. Documents outside the
+retrieved candidate set are not listed. Equal-distance candidates at the cutoff may tie.
+
+These are nearest candidates, not verified matches: no relevance threshold is applied,
+and distances are not confidence scores. Textual and vector scores use different scales; hybrid search combines their ranks.
+A missing dimension-specific table reports an error; no compatible indexed vectors
+returns an empty list without an API call. The query model must match the model used
+to index documents. See [sqlite-vec KNN queries](https://alexgarcia.xyz/sqlite-vec/features/knn.html).
 
 `search_documents` gives each document a stable integer ID. `search_documents_fts`
 is an FTS5 contentless-delete index over contact reasons, notes and message content,
@@ -92,3 +139,41 @@ used, within the successful batch transaction. No vector JSON copy is kept in SQ
 This schema is for a fresh database; existing databases are not migrated or rebuilt.
 FTS5 contentless-delete requires SQLite 3.43 or newer. See [SQLite FTS5](https://www.sqlite.org/fts5.html#contentless_delete_tables)
 and [sqlite-vec vec0](https://alexgarcia.xyz/sqlite-vec/features/vec0.html).
+
+### Hybrid search and model context
+
+```bash
+bun run search:hybrid "passkey" 5
+```
+
+`searchConversations({ query, limit, candidateLimit?, databasePath?, model?, dimensions? })`
+combines FTS5 and vector retrieval in `src/search-conversations.ts`. Each path retrieves
+`candidateLimit` unique conversations (default: three times the final limit, at least
+20 and at most 100). `candidateLimit` must be at least `limit`. The final limit is
+applied after fusion and deduplication by conversation ID.
+
+Reciprocal Rank Fusion adds `1 / (60 + rank)` for each ranking where a conversation
+appears, with one-based ranks and equal weights. Higher RRF scores rank first; ties
+use conversation ID. Raw BM25 scores and cosine distances are retained for inspection,
+but are not added together or interpreted as confidence. See Cormack, Clarke, and
+Buettcher, [Reciprocal Rank Fusion outperforms Condorcet and individual Rank Learning
+Methods](https://cormack.uwaterloo.ca/cormacksigir09-rrf.pdf) (SIGIR 2009), and
+[Azure hybrid search ranking](https://learn.microsoft.com/en-us/azure/search/hybrid-search-ranking).
+
+The returned object includes `coverage: "retrieved_candidates"`, `verified: false`,
+the number retrieved by each path (not corpus totals), and final `results`. Each
+result retains its text/vector rank and matching documents, plus the complete original
+messages with `message_index`, `role` and `content`. Original messages are read only
+for the final selection. Text-only and vector-only candidates remain eligible.
+
+The query is currently shared by both paths: FTS still requires all literal words
+in one document, while vector search uses the full phrase. Hybrid fusion does not
+expand terms or reinterpret intent. An empty ranking contributes nothing; an API or
+database error is propagated, rather than silently reporting a complete hybrid search.
+
+This is the payload for a future model tool, not a final analytical answer. The model
+will need to treat dataset messages as untrusted data, verify which candidates answer
+the question and cite their conversation IDs and message indexes. It is not yet wired
+to the question interpreter. Filters, semantic verification and session memory remain
+separate steps. Originals are returned without truncation; keep `limit` small when
+assembling model context.

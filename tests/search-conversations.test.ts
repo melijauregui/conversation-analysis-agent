@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { openDatabase, ensureVectorTable } from "../src/database";
 import { saveSearchDocuments } from "../src/search-documents";
-import { searchTextConversations, searchVectorConversations } from "../src/search-conversations";
+import { searchConversations, searchTextConversations, searchVectorConversations } from "../src/search-conversations";
 import type { EmbedBatch } from "../src/embed-documents";
 
 const directories: string[] = [];
@@ -28,6 +28,7 @@ function fixture() {
       ];
       for (const item of cases) {
         insert.run(item.id);
+        db.query("INSERT INTO messages(conversation_id, message_index, role, content) VALUES (?, 1, 'user', ?)").run(item.id, item.message);
         saveSearchDocuments(db, { id: item.id, messages: [{ role: "user", content: item.message }] }, {
           contact_reasons: item.reasons, notes: item.notes,
         });
@@ -165,4 +166,48 @@ test("no llama a la API con índice inexistente, sin modelo compatible o argumen
   await expect(searchVectorConversations({ ...options, limit: 0 })).rejects.toThrow();
   await expect(searchVectorConversations({ ...options, dimensions: 0 })).rejects.toThrow();
   expect(calls).toBe(0);
+});
+
+test("la búsqueda híbrida fusiona por posición, conserva fuentes y devuelve originales", async () => {
+  const databasePath = vectorFixture();
+  const options = { query: "passkey", limit: 4, candidateLimit: 4, databasePath,
+    model: "text-embedding-3-small" as const, dimensions: 2, embedBatch: queryEmbedding };
+  const hybrid = await searchConversations(options);
+  expect(hybrid.coverage).toBe("retrieved_candidates");
+  expect(hybrid.verified).toBe(false);
+  expect(hybrid.retrieved).toEqual({ text: 3, vector: 3 });
+  expect(hybrid.results).toHaveLength(4);
+  expect(hybrid.results[0]!.conversation_id).toBe("a");
+  expect(new Set(hybrid.results.map(({ conversation_id }) => conversation_id)).size).toBe(4);
+  for (const result of hybrid.results) {
+    const expected = (result.text ? 1 / (60 + result.text.rank) : 0) +
+      (result.vector ? 1 / (60 + result.vector.rank) : 0);
+    expect(result.rrfScore).toBeCloseTo(expected, 12);
+  }
+  expect(hybrid.results.find(({ conversation_id }) => conversation_id === "d")!.vector).toBeNull();
+  expect(hybrid.results.find(({ conversation_id }) => conversation_id === "c")!.text).toBeNull();
+  expect(hybrid.results[0]!.messages).toEqual([{ message_index: 1, role: "user", content: "passkey" }]);
+  const limited = await searchConversations({ ...options, limit: 1 });
+  expect(limited.results).toEqual(hybrid.results.slice(0, 1));
+});
+
+test("si FTS no encuentra palabras, conserva los candidatos vectoriales sin inventar coincidencias", async () => {
+  const databasePath = vectorFixture();
+  const result = await searchConversations({ query: "sin contraseña", databasePath, limit: 2,
+    model: "text-embedding-3-small", dimensions: 2, embedBatch: queryEmbedding });
+  expect(result.retrieved.text).toBe(0);
+  expect(result.results.map(({ conversation_id }) => conversation_id)).toEqual(["a", "b"]);
+  expect(result.results.every(({ text }) => text === null)).toBe(true);
+});
+
+test("la búsqueda híbrida informa fallos de API y de evidencia, en vez de devolver contexto incompleto", async () => {
+  const databasePath = vectorFixture();
+  const options = { query: "passkey", databasePath, limit: 1,
+    model: "text-embedding-3-small" as const, dimensions: 2, embedBatch: queryEmbedding };
+  await expect(searchConversations({ ...options, candidateLimit: 0 })).rejects.toThrow();
+  await expect(searchConversations({ ...options, embedBatch: async () => { throw new Error("API falló"); } }))
+    .rejects.toThrow("API falló");
+  const db = openDatabase(databasePath, "existing");
+  try { db.run("DELETE FROM messages WHERE conversation_id = 'a'"); } finally { db.close(); }
+  await expect(searchConversations(options)).rejects.toThrow("Faltan los mensajes originales de a");
 });
