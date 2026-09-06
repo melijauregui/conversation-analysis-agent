@@ -1,5 +1,6 @@
 import { Database, type SQLQueryBindings } from "bun:sqlite";
 import { interpretQuestion, type QuestionPlan } from "./interpret-question";
+import { formatAnswer } from "./format-answer";
 
 const defaultDatabasePath = new URL(
   "../data/conversations.sqlite",
@@ -114,7 +115,9 @@ export async function answerQuestion(
   databasePath = defaultDatabasePath,
 ) {
   const plan = await interpretQuestion(question);
-  return { plan, result: executeQuestionPlan(plan, databasePath) };
+  const result = executeQuestionPlan(plan, databasePath);
+  const answer = await formatAnswer(question, plan, result);
+  return { plan, result, answer };
 }
 
 function whereClause(
