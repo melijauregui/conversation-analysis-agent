@@ -3,6 +3,7 @@ import { existsSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { createHash } from "node:crypto";
 import type { Conversation, ConversationLabels } from "./classify-conversation";
+import { createSearchDocumentsTable, saveSearchDocuments } from "./search-documents";
 
 export type ClassificationContext = {
   model: string;
@@ -86,6 +87,7 @@ export function saveClassifiedBatch(
         classified_at TEXT NOT NULL
       );
     `);
+    createSearchDocumentsTable(db);
     const saveConversation = db.prepare(`
       INSERT INTO conversations (id, metadata_json) VALUES (?, ?)
       ON CONFLICT (id) DO UPDATE SET metadata_json = excluded.metadata_json
@@ -126,6 +128,7 @@ export function saveClassifiedBatch(
         saveLabels.run(labels.conversation_id, labels.resolution, labels.repetition,
           labels.assistant_quality, JSON.stringify(labels.contact_reasons), labels.notes,
           context.model, JSON.stringify(context.configuration), analysisHash, new Date().toISOString());
+        saveSearchDocuments(db, conversation, labels);
       }
     }).immediate();
   } finally {
