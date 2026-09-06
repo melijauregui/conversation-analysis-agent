@@ -1,4 +1,4 @@
-import { openDatabase, defaultDatabasePath } from "./database";
+import { openDatabase, defaultDatabasePath, ensureVectorTable, vectorTableName } from "./database";
 import { existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import type { Conversation, ConversationLabels } from "./classify-conversation";
@@ -49,6 +49,8 @@ export function getCachedConversationIds(
   if (!existsSync(databasePath)) return cached;
   const db = openDatabase(databasePath, "readonly");
   try {
+    const vectorTable = vectorTableName(embeddingConfig.dimensions);
+    if (!db.query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").get(vectorTable)) return cached;
     const find = db.query<
       { analysis_hash: string },
       [string, string, string, number]
@@ -57,9 +59,11 @@ export function getCachedConversationIds(
       FROM classifications WHERE conversation_id = ? AND analysis_hash = ?
       AND 3 = (
         SELECT COUNT(*) FROM search_documents d
-        JOIN document_embeddings e ON e.conversation_id = d.conversation_id AND e.type = d.type
+        JOIN document_embeddings e ON e.search_document_id = d.id
+        JOIN ${vectorTable} v ON v.rowid = e.id AND v.model = e.model
+        JOIN search_documents_fts f ON f.rowid = d.id
         WHERE d.conversation_id = classifications.conversation_id
-          AND e.content_hash = d.content_hash AND e.model = ? AND e.dimensions = ?
+          AND e.model = ? AND e.dimensions = ?
       )
     `);
     for (const conversation of conversations) {
@@ -117,11 +121,14 @@ export function saveClassifiedBatch(
 
     const saveEmbedding = db.prepare(`
       INSERT INTO document_embeddings
-        (conversation_id, type, content_hash, model, dimensions, vector_json, embedded_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT (conversation_id, type, model, dimensions) DO UPDATE SET
-        content_hash = excluded.content_hash, vector_json = excluded.vector_json,
+        (search_document_id, model, dimensions, embedded_at)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT (search_document_id, model, dimensions) DO UPDATE SET
         embedded_at = excluded.embedded_at
+      RETURNING id
+    `);
+    const findDocument = db.query<{ id: number }, [string, string]>(`
+      SELECT id FROM search_documents WHERE conversation_id = ? AND type = ?
     `);
 
     // Clasificación y embeddings ya están completos en memoria. Un único commit por lote.
@@ -165,16 +172,20 @@ export function saveClassifiedBatch(
         );
         saveSearchDocuments(db, conversation, labels);
       }
+      const vectorTable = embeddings[0] ? ensureVectorTable(db, embeddings[0].dimensions) : null;
+      const removeVector = vectorTable ? db.prepare(`DELETE FROM ${vectorTable} WHERE rowid = ?`) : null;
+      const saveVector = vectorTable ? db.prepare(`INSERT INTO ${vectorTable}(rowid, embedding, model) VALUES (?, ?, ?)`) : null;
       for (const embedding of embeddings) {
-        saveEmbedding.run(
-          embedding.conversation_id,
-          embedding.type,
-          embedding.content_hash,
+        const document = findDocument.get(embedding.conversation_id, embedding.type);
+        if (!document) throw new Error(`Documento faltante: ${embedding.conversation_id}/${embedding.type}.`);
+        const row = saveEmbedding.get(
+          document.id,
           embedding.model,
           embedding.dimensions,
-          embedding.vector_json,
           new Date().toISOString(),
-        );
+        ) as { id: number };
+        removeVector!.run(row.id);
+        saveVector!.run(row.id, new Float32Array(JSON.parse(embedding.vector_json)), embedding.model);
       }
     }).immediate();
   } finally {

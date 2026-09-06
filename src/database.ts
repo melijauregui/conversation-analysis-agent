@@ -71,23 +71,54 @@ function initializeTables(db: Database) {
       classified_at TEXT NOT NULL
     );
     CREATE TABLE IF NOT EXISTS search_documents (
+      id INTEGER PRIMARY KEY,
       conversation_id TEXT NOT NULL REFERENCES conversations(id),
       type TEXT NOT NULL CHECK (type IN ('contact_reasons', 'notes', 'conversation')),
       content_hash TEXT NOT NULL,
       message_start INTEGER,
       message_end INTEGER,
-      PRIMARY KEY (conversation_id, type)
+      UNIQUE (conversation_id, type)
+    );
+    CREATE VIRTUAL TABLE IF NOT EXISTS search_documents_fts USING fts5(
+      text, content='', contentless_delete=1, tokenize='unicode61 remove_diacritics 2'
     );
     CREATE TABLE IF NOT EXISTS document_embeddings (
-      conversation_id TEXT NOT NULL,
-      type TEXT NOT NULL,
-      content_hash TEXT NOT NULL,
+      id INTEGER PRIMARY KEY,
+      search_document_id INTEGER NOT NULL REFERENCES search_documents(id) ON DELETE CASCADE,
       model TEXT NOT NULL,
       dimensions INTEGER NOT NULL CHECK (dimensions > 0),
-      vector_json TEXT NOT NULL,
       embedded_at TEXT NOT NULL,
-      PRIMARY KEY (conversation_id, type, model, dimensions),
-      FOREIGN KEY (conversation_id, type) REFERENCES search_documents(conversation_id, type)
+      UNIQUE (search_document_id, model, dimensions)
     );
+    CREATE TRIGGER IF NOT EXISTS search_documents_delete AFTER DELETE ON search_documents BEGIN
+      DELETE FROM search_documents_fts WHERE rowid = old.id;
+    END;
+    CREATE TRIGGER IF NOT EXISTS search_documents_changed AFTER UPDATE OF content_hash ON search_documents
+    WHEN old.content_hash != new.content_hash BEGIN
+      DELETE FROM document_embeddings WHERE search_document_id = old.id;
+    END;
   `)).immediate();
+}
+
+export function vectorTableName(dimensions: number) {
+  if (!Number.isInteger(dimensions) || dimensions < 1 || dimensions > 3072) {
+    throw new Error("Las dimensiones del índice vectorial deben estar entre 1 y 3072.");
+  }
+  return `document_vectors_${dimensions}`;
+}
+
+// Se crea dentro de la transacción del lote. Los vectores se guardan solo aquí.
+export function ensureVectorTable(db: Database, dimensions: number) {
+  const table = vectorTableName(dimensions);
+  db.run(`
+    CREATE VIRTUAL TABLE IF NOT EXISTS ${table} USING vec0(
+      embedding float[${dimensions}] distance_metric=cosine,
+      model text partition key
+    );
+    CREATE TRIGGER IF NOT EXISTS ${table}_delete AFTER DELETE ON document_embeddings
+    WHEN old.dimensions = ${dimensions} BEGIN
+      DELETE FROM ${table} WHERE rowid = old.id;
+    END;
+  `);
+  return table;
 }

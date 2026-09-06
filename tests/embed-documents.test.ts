@@ -35,7 +35,8 @@ const fakeEmbed: EmbedBatch = async ({ input, model, dimensions }) => ({
 function snapshot(path: string) {
   const db = openDatabase(path, "readonly");
   try {
-    return Object.fromEntries(["conversations", "messages", "classifications", "search_documents", "document_embeddings"]
+    const vectors = db.query<{ name: string }, []>("SELECT name FROM sqlite_master WHERE sql LIKE 'CREATE VIRTUAL TABLE%USING vec0%'").all().map(({ name }) => name);
+    return Object.fromEntries(["conversations", "messages", "classifications", "search_documents", "document_embeddings", "search_documents_fts", ...vectors]
       .map((table) => [table, db.query(`SELECT * FROM ${table} ORDER BY rowid`).all()]));
   } finally { db.close(); }
 }
@@ -57,7 +58,12 @@ test("genera todos los embeddings del lote en memoria y guarda una unidad comple
   const stored = snapshot(f.databasePath);
   expect(stored.classifications).toHaveLength(2);
   expect(stored.document_embeddings).toHaveLength(6);
-  expect(stored.document_embeddings![0]).toMatchObject({ type: "contact_reasons", vector_json: "[1,1]" });
+  expect(stored.document_embeddings![0]).toMatchObject({ search_document_id: 1 });
+  for (const column of ["conversation_id", "type", "content_hash"]) {
+    expect(stored.document_embeddings![0]).not.toHaveProperty(column);
+  }
+  expect(stored.document_embeddings![0]).not.toHaveProperty("vector_json");
+  expect(stored.document_vectors_2).toHaveLength(6);
 });
 
 test("si fallan embeddings no persiste el lote y reintenta también clasificación", async () => {
@@ -85,12 +91,19 @@ test("un fallo en el guardado revierte también mensajes y clasificaciones anter
   const db = openDatabase(f.databasePath, "existing");
   try {
     db.run(`CREATE TRIGGER fail_embedding BEFORE INSERT ON document_embeddings
-      WHEN NEW.conversation_id = 'conv_1' BEGIN SELECT RAISE(ABORT, 'fallo de guardado'); END`);
+      WHEN NEW.search_document_id IN (SELECT id FROM search_documents WHERE conversation_id = 'conv_1') BEGIN SELECT RAISE(ABORT, 'fallo de guardado'); END`);
   } finally { db.close(); }
   const failed = await classifyConversations(f.conversations, f.options);
   expect(failed.errors[0]!.conversation_ids).toEqual(["conv_0", "conv_1"]);
   expect(failed.successes).toHaveLength(0);
   expect(snapshot(f.databasePath)).toEqual(before);
+  const check = openDatabase(f.databasePath, "readonly");
+  try {
+    expect(check.query(`SELECT d.id FROM search_documents_fts f JOIN search_documents d ON d.id = f.rowid
+      WHERE search_documents_fts MATCH 'contenido' AND d.type = 'conversation'`).all()).toEqual([]);
+    expect(check.query(`SELECT d.id FROM search_documents_fts f JOIN search_documents d ON d.id = f.rowid
+      WHERE search_documents_fts MATCH 'passkey' AND d.type = 'conversation'`).all()).toHaveLength(2);
+  } finally { check.close(); }
 });
 
 test("reutiliza solo resultados completos con la misma configuración", async () => {
@@ -101,7 +114,7 @@ test("reutiliza solo resultados completos con la misma configuración", async ()
   await classifyConversations(f.conversations, { ...f.options, classifyBatch });
   expect(calls).toBe(0);
   const db = openDatabase(f.databasePath, "existing");
-  try { db.run("DELETE FROM document_embeddings WHERE conversation_id = 'conv_0' AND type = 'notes'"); }
+  try { db.run("DELETE FROM document_embeddings WHERE search_document_id IN (SELECT id FROM search_documents WHERE conversation_id = 'conv_0' AND type = 'notes')"); }
   finally { db.close(); }
   expect((await classifyConversations(f.conversations, { ...f.options, classifyBatch })).successes).toHaveLength(1);
   expect(calls).toBe(1);

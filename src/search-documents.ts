@@ -37,8 +37,9 @@ export function saveSearchDocuments(
       content_hash = excluded.content_hash,
       message_start = excluded.message_start,
       message_end = excluded.message_end
-    WHERE search_documents.content_hash != excluded.content_hash
+    RETURNING id
   `);
+  const saveText = db.prepare("INSERT OR REPLACE INTO search_documents_fts(rowid, text) VALUES (?, ?)");
   for (const document of buildEmbeddingPayload(conversation, labels)) {
     // El hash representa exactamente el texto que se enviará al modelo de embeddings.
     const hash = createHash("sha256")
@@ -46,12 +47,16 @@ export function saveSearchDocuments(
       .digest("hex");
     const hasMessages =
       document.type === "conversation" && conversation.messages.length > 0;
-    save.run(
+    const row = save.get(
       conversation.id,
       document.type,
       hash,
       hasMessages ? 1 : null,
       hasMessages ? conversation.messages.length : null,
-    );
+    ) as { id: number };
+    const text = document.type === "contact_reasons" ? labels.contact_reasons.join("\n")
+      : document.type === "notes" ? labels.notes
+      : conversation.messages.map(({ content }) => content).join("\n");
+    saveText.run(row.id, text);
   }
 }

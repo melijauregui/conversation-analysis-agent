@@ -14,11 +14,82 @@ import type {
   ConversationLabels,
 } from "../src/classify-conversation";
 import { buildEmbeddingPayload } from "../src/search-documents";
+import { openDatabase } from "../src/database";
 
 const directories: string[] = [];
 afterEach(() => {
   for (const directory of directories.splice(0))
     rmSync(directory, { recursive: true, force: true });
+});
+
+test("FTS5 encuentra palabras en los tres documentos sin duplicar textos ni filas", () => {
+  const f = fixture();
+  f.labels.contact_reasons = ["Facturación"];
+  f.labels.notes = "Usuario satisfecho";
+  f.save();
+  f.save();
+  const db = openDatabase(f.path, "readonly");
+  try {
+    const search = db.query<{ type: string; text: null }, [string]>(`
+      SELECT d.type, f.text FROM search_documents_fts f
+      JOIN search_documents d ON d.id = f.rowid
+      WHERE search_documents_fts MATCH ? ORDER BY d.type
+    `);
+    expect(search.all("facturacion")).toEqual([{ type: "contact_reasons", text: null }]);
+    expect(search.all("satisfecho")).toEqual([{ type: "notes", text: null }]);
+    expect(search.all("passkey")).toEqual([{ type: "conversation", text: null }]);
+    expect(search.all("message_index")).toEqual([]);
+    expect(db.query<{ count: number }, []>("SELECT COUNT(*) AS count FROM search_documents_fts").get()?.count).toBe(3);
+    expect(db.query<{ count: number }, []>("SELECT COUNT(*) AS count FROM document_vectors_2").get()?.count).toBe(3);
+  } finally { db.close(); }
+});
+
+test("actualiza FTS y vec0 juntos, mantiene IDs y limpia entradas borradas", () => {
+  const f = fixture();
+  const db = openDatabase(f.path, "existing");
+  try {
+    const ids = db.query("SELECT id, type FROM search_documents ORDER BY id").all();
+    f.labels.notes = "Nuevo diagnóstico";
+    const vectors = fixtureEmbeddings([f.conversation], [f.labels]);
+    vectors.find((item) => item.type === "notes")!.vector_json = "[0,1]";
+    saveClassifiedBatch([f.conversation], [f.labels], f.context, vectors, f.path);
+    expect(db.query("SELECT id, type FROM search_documents ORDER BY id").all()).toEqual(ids);
+    expect(db.query("SELECT rowid FROM search_documents_fts WHERE search_documents_fts MATCH 'confirmar'").all()).toEqual([]);
+    expect(db.query("SELECT rowid FROM search_documents_fts WHERE search_documents_fts MATCH 'diagnostico'").all()).toHaveLength(1);
+    const matches = db.query<{ type: string; distance: number }, [Float32Array, string]>(`
+      SELECT d.type, v.distance FROM document_vectors_2 v
+      JOIN document_embeddings e ON e.id = v.rowid
+      JOIN search_documents d ON d.id = e.search_document_id
+      WHERE v.embedding MATCH ? AND v.model = ? AND k = 1 ORDER BY distance
+    `).all(new Float32Array([0, 1]), "text-embedding-3-small");
+    expect(matches).toEqual([{ type: "notes", distance: 0 }]);
+    db.run("DELETE FROM search_documents WHERE type = 'notes'");
+    expect(db.query("SELECT rowid FROM search_documents_fts WHERE search_documents_fts MATCH 'diagnostico'").all()).toEqual([]);
+    expect(db.query("SELECT e.* FROM document_embeddings e JOIN search_documents d ON d.id = e.search_document_id WHERE d.type = 'notes'").all()).toEqual([]);
+    expect(db.query("SELECT rowid FROM document_vectors_2").all()).toHaveLength(2);
+  } finally { db.close(); }
+});
+
+test("separa modelos en vec0 e invalida versiones anteriores del documento modificado", () => {
+  const f = fixture();
+  const vectors = fixtureEmbeddings([f.conversation], [f.labels]).map((item) => ({
+    ...item, model: "text-embedding-3-large", vector_json: "[0,1]",
+  }));
+  saveClassifiedBatch([f.conversation], [f.labels], f.context, vectors, f.path);
+  const db = openDatabase(f.path, "existing");
+  try {
+    const search = db.query<{ model: string }, [Float32Array, string]>(`
+      SELECT model FROM document_vectors_2 WHERE embedding MATCH ? AND model = ? AND k = 3
+    `);
+    expect(search.all(new Float32Array([0, 1]), "text-embedding-3-small")).toEqual(
+      Array.from({ length: 3 }, () => ({ model: "text-embedding-3-small" })),
+    );
+    f.labels.notes = "Texto reemplazado";
+    f.save();
+    expect(db.query(`SELECT e.* FROM document_embeddings e JOIN search_documents d ON d.id = e.search_document_id WHERE d.type = 'notes' AND e.model = 'text-embedding-3-large'`).all()).toEqual([]);
+    expect(search.all(new Float32Array([0, 1]), "text-embedding-3-large")).toHaveLength(2);
+    expect(db.query("SELECT rowid FROM document_vectors_2").all()).toHaveLength(5);
+  } finally { db.close(); }
 });
 
 function fixture() {

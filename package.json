@@ -12,6 +12,7 @@
   "dependencies": {
     "js-tiktoken": "1.0.21",
     "openai": "7.10.0",
+    "sqlite-vec": "0.1.9",
     "zod": "4.5.4"
   },
   "scripts": {
