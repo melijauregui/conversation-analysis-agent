@@ -37,7 +37,7 @@ function seed() {
       resolution: "resuelto",
       repetition: "ausente",
       assistant_quality: "adecuada",
-      contact_reasons: ["Cancelar la cuenta", "Pedir reembolso"],
+      contact_reasons: ["Cancelar la cuenta", "Cancelar la cuenta", "Pedir reembolso"],
     }),
     labels("c", {
       resolution: "no_resuelto",
@@ -89,6 +89,7 @@ function labels(
 function classificationQuery(overrides: Partial<ClassificationQuery> = {}): ClassificationQuery {
   return {
     aggregation: "count",
+    grouping: null,
     conversationIds: null,
     population: { operator: "and", filters: [] },
     matching: { operator: "and", filters: [] },
@@ -106,6 +107,80 @@ test("cuenta conversaciones clasificadas", () => {
     kind: "count",
     count: 3,
   });
+});
+
+test("agrupa motivos exactos sin duplicar conversaciones y conserva denominadores antes del límite", () => {
+  const databasePath = seed();
+  const db = openDatabase(databasePath, "existing");
+  try {
+    expect(db.query("SELECT reason FROM conversation_contact_reasons WHERE conversation_id = 'b' ORDER BY reason").all())
+      .toEqual([{ reason: "Cancelar la cuenta" }, { reason: "Pedir reembolso" }]);
+  } finally { db.close(); }
+  const result = queryClassifications(classificationQuery({ aggregation: "grouped",
+    grouping: { groupBy: "contact_reasons", metrics: ["count", "percentage", "resolution_rate", "inadequate_quality_rate"], limit: 1 },
+  }), databasePath);
+  expect(result).toEqual({ kind: "grouped", groupBy: "contact_reasons", totalConversations: 3, items: [
+    { value: "Cancelar la cuenta", metrics: { count: 2,
+      percentage: { numerator: 2, denominator: 3, percentage: 200 / 3 },
+      resolution_rate: { numerator: 1, denominator: 2, percentage: 50 },
+      inadequate_quality_rate: { numerator: 0, denominator: 2, percentage: 0 },
+    } },
+  ] });
+});
+
+test("agrupación aplica IDs, ambos filtros y fechas y devuelve solo métricas solicitadas", () => {
+  const databasePath = seed();
+  const result = queryClassifications(classificationQuery({ aggregation: "grouped",
+    conversationIds: ["a", "b", "c", "d"],
+    population: { operator: "or", filters: [{ field: "repetition", value: "ausente" }, { field: "resolution", value: "resuelto" }] },
+    matching: { operator: "and", filters: [{ field: "resolution", value: "no_resuelto" }] },
+    dateRange: { from: "2024-01-01", toExclusive: "2024-02-01" },
+    grouping: { groupBy: "assistant_quality", metrics: ["count"], limit: 10 }, examples: 3,
+  }), databasePath);
+  expect(result).toEqual({ kind: "grouped", groupBy: "assistant_quality", totalConversations: 1,
+    items: [{ value: "adecuada", metrics: { count: 1 } }], examples: ["a"] });
+  const empty = queryClassifications(classificationQuery({ aggregation: "grouped", conversationIds: [],
+    grouping: { groupBy: "resolution", metrics: ["percentage"], limit: 10 },
+  }), databasePath);
+  expect(empty).toEqual({ kind: "grouped", groupBy: "resolution", totalConversations: 0, items: [] });
+});
+
+test("mantiene indeterminados en tasas y no combina motivos equivalentes ni vacíos", () => {
+  const databasePath = seed();
+  const db = openDatabase(databasePath, "existing");
+  try {
+    db.query("UPDATE classifications SET resolution = 'indeterminado' WHERE conversation_id = 'a'").run();
+    db.query("DELETE FROM conversation_contact_reasons WHERE conversation_id IN ('a', 'c')").run();
+    for (const reason of ["Cancelar mi cuenta", "", "  "]) {
+      db.query("INSERT INTO conversation_contact_reasons VALUES ('a', ?)").run(reason);
+    }
+  } finally { db.close(); }
+  const result = queryClassifications(classificationQuery({ aggregation: "grouped",
+    grouping: { groupBy: "contact_reasons", metrics: ["count", "resolution_rate"], limit: 10 },
+  }), databasePath);
+  expect(result.kind).toBe("grouped");
+  if (result.kind !== "grouped") return;
+  expect(result.totalConversations).toBe(3);
+  expect(result.items.map((item) => item.value)).toEqual(["Cancelar la cuenta", "Cancelar mi cuenta", "Pedir reembolso"]);
+  expect(result.items[1]!.metrics.resolution_rate).toEqual({ numerator: 0, denominator: 1, percentage: 0 });
+  const repetition = queryClassifications(classificationQuery({ aggregation: "grouped",
+    grouping: { groupBy: "repetition", metrics: ["resolution_rate"], limit: 10 },
+  }), databasePath);
+  expect(repetition).toMatchObject({ items: [{ value: "ausente", metrics: {
+    resolution_rate: { numerator: 1, denominator: 2, percentage: 50 },
+  } }, { value: "presente", metrics: { resolution_rate: { numerator: 0, denominator: 1, percentage: 0 } } }] });
+});
+
+test("rechaza agrupaciones o métricas no admitidas antes de abrir SQLite", () => {
+  const query = classificationQuery({ aggregation: "grouped",
+    grouping: { groupBy: "resolution", metrics: ["count"], limit: 5 } });
+  for (const override of [{ grouping: null }, { aggregation: "count" },
+    ...[{ groupBy: "frustration" }, { groupBy: "resolution; DROP TABLE classifications" },
+      { metrics: [] }, { metrics: ["arbitrary_sql"] }, { metrics: ["count", "count"] }, { limit: 0 },
+    ].map((change) => ({ grouping: { ...query.grouping, ...change } }))]) {
+    expect(() => queryClassifications({ ...query, ...override }, "/no-existe/test.sqlite"))
+      .toThrow(/grouping|Invalid|Too small/);
+  }
 });
 
 test("filtra con AND y OR", () => {

@@ -104,20 +104,21 @@ export function saveClassifiedBatch(
     const saveMessage = db.prepare("INSERT INTO messages VALUES (?, ?, ?, ?)");
     const saveLabels = db.prepare(`
       INSERT INTO classifications (
-        conversation_id, resolution, repetition, assistant_quality, contact_reasons_json, notes,
+        conversation_id, resolution, repetition, assistant_quality, notes,
         model, configuration_json, analysis_hash, classified_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT (conversation_id) DO UPDATE SET
         resolution = excluded.resolution,
         repetition = excluded.repetition,
         assistant_quality = excluded.assistant_quality,
-        contact_reasons_json = excluded.contact_reasons_json,
         notes = excluded.notes,
         model = excluded.model,
         configuration_json = excluded.configuration_json,
         analysis_hash = excluded.analysis_hash,
         classified_at = excluded.classified_at
     `);
+    const clearReasons = db.prepare("DELETE FROM conversation_contact_reasons WHERE conversation_id = ?");
+    const saveReason = db.prepare("INSERT INTO conversation_contact_reasons (conversation_id, reason) VALUES (?, ?)");
 
     const saveEmbedding = db.prepare(`
       INSERT INTO document_embeddings
@@ -163,13 +164,14 @@ export function saveClassifiedBatch(
           labels.resolution,
           labels.repetition,
           labels.assistant_quality,
-          JSON.stringify(labels.contact_reasons),
           labels.notes,
           context.model,
           JSON.stringify(context.configuration),
           analysisHash,
           new Date().toISOString(),
         );
+        clearReasons.run(labels.conversation_id);
+        for (const reason of new Set(labels.contact_reasons)) saveReason.run(labels.conversation_id, reason);
         saveSearchDocuments(db, conversation, labels);
       }
       const vectorTable = embeddings[0] ? ensureVectorTable(db, embeddings[0].dimensions) : null;

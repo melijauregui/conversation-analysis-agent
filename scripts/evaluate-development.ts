@@ -2,9 +2,7 @@ import { openDatabase } from "../src/database";
 import type { ConversationLabels } from "../src/classify-conversation";
 
 type ReferenceLabels = ConversationLabels & { reviewed: boolean };
-type StoredLabels = Omit<ConversationLabels, "contact_reasons"> & {
-  contact_reasons_json: string;
-};
+type StoredLabels = Omit<ConversationLabels, "contact_reasons">;
 
 type Impact = "alto" | "medio" | "bajo";
 
@@ -32,14 +30,16 @@ try {
   const findPrediction = db.query<StoredLabels, [string]>(
     "SELECT * FROM classifications WHERE conversation_id = ?",
   );
+  const findReasons = db.query<{ reason: string }, [string]>(
+    "SELECT reason FROM conversation_contact_reasons WHERE conversation_id = ? ORDER BY reason",
+  );
 
   const fields = ["resolution", "repetition", "assistant_quality"] as const;
   const cases = dataset.labels.map((reference) => {
     const row = findPrediction.get(reference.conversation_id);
     let prediction: ConversationLabels | null = null;
     if (row) {
-      const { contact_reasons_json, ...labels } = row;
-      prediction = { ...labels, contact_reasons: JSON.parse(contact_reasons_json) };
+      prediction = { ...row, contact_reasons: findReasons.all(reference.conversation_id).map(({ reason }) => reason) };
     }
     const comparison = prediction
       ? fields.map((field) => ({

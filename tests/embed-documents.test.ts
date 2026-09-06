@@ -36,7 +36,7 @@ function snapshot(path: string) {
   const db = openDatabase(path, "readonly");
   try {
     const vectors = db.query<{ name: string }, []>("SELECT name FROM sqlite_master WHERE sql LIKE 'CREATE VIRTUAL TABLE%USING vec0%'").all().map(({ name }) => name);
-    return Object.fromEntries(["conversations", "messages", "classifications", "search_documents", "document_embeddings", "search_documents_fts", ...vectors]
+    return Object.fromEntries(["conversations", "messages", "classifications", "conversation_contact_reasons", "search_documents", "document_embeddings", "search_documents_fts", ...vectors]
       .map((table) => [table, db.query(`SELECT * FROM ${table} ORDER BY rowid`).all()]));
   } finally { db.close(); }
 }
@@ -57,6 +57,8 @@ test("genera todos los embeddings del lote en memoria y guarda una unidad comple
   expect(result.successes).toHaveLength(2);
   const stored = snapshot(f.databasePath);
   expect(stored.classifications).toHaveLength(2);
+  expect(stored.classifications![0]).not.toHaveProperty("contact_reasons_json");
+  expect(stored.conversation_contact_reasons).toHaveLength(2);
   expect(stored.document_embeddings).toHaveLength(6);
   expect(stored.document_embeddings![0]).toMatchObject({ search_document_id: 1 });
   for (const column of ["conversation_id", "type", "content_hash"]) {
@@ -82,6 +84,32 @@ test("si fallan embeddings no persiste el lote y reintenta también clasificaci�
   expect(retry.successes).toHaveLength(2);
 });
 
+test("reclasificar reemplaza motivos anteriores, deduplica y sincroniza FTS", async () => {
+  const f = fixture(1);
+  await classifyConversations(f.conversations, f.options);
+  f.conversations[0]!.messages[0]!.content = "Consulta sobre facturación";
+  const result = await classifyConversations(f.conversations, { ...f.options,
+    classifyBatch: async (batch) => {
+      const labels = await fakeClassify(batch);
+      labels.classifications[0]!.contact_reasons = ["Facturación", "Facturación", "Reembolso"];
+      return labels;
+    },
+  });
+  expect(result.errors).toEqual([]);
+  const db = openDatabase(f.databasePath, "readonly");
+  try {
+    expect(db.query("SELECT * FROM conversation_contact_reasons ORDER BY reason").all()).toEqual([
+      { conversation_id: "conv_0", reason: "Facturación" },
+      { conversation_id: "conv_0", reason: "Reembolso" },
+    ]);
+    expect(db.query(`SELECT d.conversation_id FROM search_documents_fts f JOIN search_documents d ON d.id = f.rowid
+      WHERE search_documents_fts MATCH 'reembolso' AND d.type = 'contact_reasons'`).all())
+      .toEqual([{ conversation_id: "conv_0" }]);
+    expect(db.query(`SELECT d.conversation_id FROM search_documents_fts f JOIN search_documents d ON d.id = f.rowid
+      WHERE search_documents_fts MATCH 'passkey' AND d.type = 'contact_reasons'`).all()).toEqual([]);
+  } finally { db.close(); }
+});
+
 test("un fallo en el guardado revierte también mensajes y clasificaciones anteriores", async () => {
   const f = fixture();
   await classifyConversations(f.conversations, f.options);
@@ -93,7 +121,13 @@ test("un fallo en el guardado revierte también mensajes y clasificaciones anter
     db.run(`CREATE TRIGGER fail_embedding BEFORE INSERT ON document_embeddings
       WHEN NEW.search_document_id IN (SELECT id FROM search_documents WHERE conversation_id = 'conv_1') BEGIN SELECT RAISE(ABORT, 'fallo de guardado'); END`);
   } finally { db.close(); }
-  const failed = await classifyConversations(f.conversations, f.options);
+  const failed = await classifyConversations(f.conversations, { ...f.options,
+    classifyBatch: async (batch) => {
+      const result = await fakeClassify(batch);
+      result.classifications.forEach((labels) => { labels.contact_reasons = ["motivo nuevo"]; });
+      return result;
+    },
+  });
   expect(failed.errors[0]!.conversation_ids).toEqual(["conv_0", "conv_1"]);
   expect(failed.successes).toHaveLength(0);
   expect(snapshot(f.databasePath)).toEqual(before);

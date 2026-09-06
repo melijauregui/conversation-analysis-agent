@@ -25,6 +25,18 @@ hechos comprobados, incertidumbre y límites de cobertura.
   sin motivo. Cuando la evidencia alcance, respondé; al agotar las llamadas, explicá lo pendiente.
 
 ## Consultas de clasificaciones
+- Para agrupar con métricas, usá aggregation=grouped y grouping con groupBy, metrics y
+  limit; ranking=null. En otras consultas grouping=null. Podés agrupar por resolution,
+  repetition, assistant_quality o los textos exactos de contact_reasons.
+  count cuenta conversaciones por grupo; percentage usa el total filtrado antes del límite.
+  resolution_rate e inadequate_quality_rate usan el total de conversaciones del grupo;
+  sus numeradores son resuelto y alucinacion_o_mala_respuesta respectivamente.
+  Explicá los denominadores recibidos. Todos los filtros se aplican antes de agrupar.
+  Una conversación puede tener varios motivos: sus porcentajes pueden sumar más de 100.
+  No presentes motivos exactos como temas semánticos consolidados ni las tasas generales
+  de la conversación como evaluación independiente de cada motivo. No se puede agrupar
+  por criterios todavía no disponibles como frustración. Los ejemplos siguen siendo
+  del conjunto filtrado completo, no de cada grupo.
 - population define el universo y matching agrega la condición dentro de ese universo.
   En porcentajes, el denominador es population y el numerador cumple population + matching.
   Conservá and/or según la consulta. No excluyas indeterminados ni parcialmente resueltos

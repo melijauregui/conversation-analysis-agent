@@ -72,6 +72,18 @@ never silently truncated. Conversation fragmentation is not implemented yet. Req
 The source JSON is unchanged. Conversations absent from the input remain untouched.
 The database and its WAL files are local generated files excluded from Git.
 
+Contact reasons are stored in `conversation_contact_reasons(conversation_id, reason)`.
+Its composite primary key prevents repeated reasons within a conversation; an index
+on `(reason, conversation_id)` supports queries by exact reason. `classifications`
+no longer contains `contact_reasons_json`. The model still returns an array; the batch
+save replaces that conversation's reason rows inside the same transaction as labels,
+FTS and embeddings. A failure rolls back the entire batch, including reason changes.
+The in-memory array still supplies the search document; it does not become one vector
+per reason. Reason order is not part of the relational table.
+
+There is no migration: recreate the local database before importing with this schema.
+The development evaluator and integration tests now read reasons from the new table.
+
 ## Classification query tool
 
 `src/execute-question.ts` exports `queryClassificationsTool`, a strict Responses

@@ -68,7 +68,7 @@ export type ConversationClassifier = {
   ): Promise<ConversationLabels[]>;
 };
 
-const defaultBatchSize = 50;
+const defaultBatchSize = 10;
 const defaultConcurrency = 15;
 const promptCacheKey = "conversation-classification-v1";
 const reasoning = { effort: "low" } as const;

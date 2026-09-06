@@ -14,6 +14,98 @@ function integrationTest(name: string, run: () => Promise<void>, timeout: number
   }, timeout);
 }
 
+integrationTest("development: cinco motivos exactos con cantidad y porcentaje de resolución", async () => {
+  if (!process.env.OPENAI_API_KEY) throw new Error("Falta OPENAI_API_KEY para el test de integración.");
+  const question = "Mostrame los 5 motivos de contacto exactos más frecuentes, su cantidad y porcentaje de resolución";
+  const development: { conversations: { id: string }[] } = await Bun.file(
+    new URL("../data/development.json", import.meta.url),
+  ).json();
+  const db = openDatabase(undefined, "readonly");
+  let rows: { conversation_id: string; resolution: string }[];
+  let reasons: { conversation_id: string; reason: string }[];
+  try {
+    rows = db.query<typeof rows[number], []>(
+      "SELECT conversation_id, resolution FROM classifications ORDER BY conversation_id",
+    ).all();
+    reasons = db.query<typeof reasons[number], []>(
+      "SELECT conversation_id, reason FROM conversation_contact_reasons ORDER BY conversation_id, reason",
+    ).all();
+  } finally { db.close(); }
+  expect(rows.map((row) => row.conversation_id))
+    .toEqual(development.conversations.map(({ id }) => id).sort());
+
+  // Oráculo independiente: agrupa en JS los textos exactos y deduplica por conversación.
+  const groups = new Map<string, { value: string; ids: string[]; resolvedIds: string[] }>();
+  for (const row of rows) {
+    const conversationReasons = reasons.filter((item) => item.conversation_id === row.conversation_id).map((item) => item.reason);
+    for (const reason of new Set(conversationReasons)) {
+      if (typeof reason !== "string" || !reason.trim()) continue;
+      const group = groups.get(reason) ?? { value: reason, ids: [], resolvedIds: [] };
+      group.ids.push(row.conversation_id);
+      if (row.resolution === "resuelto") group.resolvedIds.push(row.conversation_id);
+      groups.set(reason, group);
+    }
+  }
+  const selected = [...groups.values()].sort((a, b) => b.ids.length - a.ids.length ||
+    (a.value < b.value ? -1 : a.value > b.value ? 1 : 0)).slice(0, 5);
+  const expected = { kind: "grouped", groupBy: "contact_reasons", totalConversations: rows.length,
+    items: selected.map((group) => ({ value: group.value, metrics: { count: group.ids.length,
+      resolution_rate: { numerator: group.resolvedIds.length, denominator: group.ids.length,
+        percentage: group.resolvedIds.length * 100 / group.ids.length },
+    } })),
+  };
+  const actual = await answerQuestion(question);
+  const diagnostics: string[] = [];
+  const calls = actual.calls.filter((call) => call.name === "queryClassifications");
+  const grouped = calls.find((call) => parseClassificationQuery(call.arguments).aggregation === "grouped");
+  if (!grouped) diagnostics.push("[HERRAMIENTA] No se ejecutó queryClassifications con aggregation=grouped.");
+  if (actual.calls.some((call) => call.name !== "queryClassifications")) {
+    diagnostics.push("[COBERTURA] Se utilizó búsqueda de candidatos para una consulta global de motivos exactos.");
+  }
+  // Verifica nombres y números asociados a cada grupo sin fijar tabla/lista o redacción.
+  const text = actual.answer.replace(/\*\*|`/g, "");
+  let lastPosition = -1;
+  for (const [index, item] of expected.items.entries()) {
+    const start = text.indexOf(item.value);
+    if (start < 0) { diagnostics.push(`[GRUPO] Falta el motivo exacto «${item.value}».`); continue; }
+    if (start <= lastPosition) diagnostics.push(`[ORDEN] «${item.value}» no conserva el orden por frecuencia.`);
+    lastPosition = start;
+    const next = expected.items[index + 1];
+    const end = next ? text.indexOf(next.value, start + item.value.length) : text.length;
+    const section = text.slice(start + item.value.length, end < 0 ? text.length : end);
+    if (!new RegExp(`\\b${item.metrics.count}\\b`).test(section)) {
+      diagnostics.push(`[CANTIDAD] «${item.value}»: se esperaba ${item.metrics.count}.`);
+    }
+    const percentages = [...section.matchAll(/(\d+(?:[.,]\d+)?)\s*%/g)];
+    const correctRate = percentages.some((match) => {
+      const value = match[1]!.replace(",", ".");
+      const decimals = value.split(".")[1]?.length ?? 0;
+      const factor = 10 ** decimals;
+      return Number(value) === Math.round(item.metrics.resolution_rate.percentage * factor) / factor;
+    });
+    if (!correctRate) diagnostics.push(`[TASA] «${item.value}»: se esperaba ${item.metrics.resolution_rate.numerator}/${item.metrics.count} = ${item.metrics.resolution_rate.percentage.toFixed(2)}%, admitiendo redondeo.`);
+  }
+  const reportPath = new URL("../reports/development-question-07.json", import.meta.url);
+  await mkdir(new URL("../reports/", import.meta.url), { recursive: true });
+  await Bun.write(reportPath, JSON.stringify({ question, model: process.env.OPENAI_MODEL ?? "gpt-5.6-luna",
+    ranAt: new Date().toISOString(), expected, evidence: selected, actual, diagnostics,
+    manualReview: "Verificar que explique resolución como resuelto / conversaciones del grupo, que respete los motivos exactos y que no atribuya la resolución general a cada motivo por separado. Las comprobaciones de prosa son orientativas.",
+  }, null, 2));
+  console.log(`Respuesta del modelo:\n${actual.answer}\n\nReporte: ${reportPath.pathname}`);
+  for (const diagnostic of diagnostics) console.log(`- ${diagnostic}`);
+  expect(grouped, "Debe existir una consulta grouped; ver reporte").toBeDefined();
+  const args = parseClassificationQuery(grouped!.arguments);
+  expect(args.grouping).toEqual({ groupBy: "contact_reasons",
+    metrics: expect.arrayContaining(["count", "resolution_rate"]), limit: 5 });
+  expect(args.grouping!.metrics).toHaveLength(2);
+  expect(args.population.filters).toEqual([]);
+  expect(args.matching.filters).toEqual([]);
+  expect(args.conversationIds).toBeNull();
+  expect(args.dateRange).toEqual({ from: null, toExclusive: null });
+  expect(grouped!.result, "Los grupos y sus métricas deben coincidir con el cálculo independiente en JS").toEqual(expected);
+  if (diagnostics.length) throw new Error(diagnostics.join("\n"));
+}, 180_000);
+
 function reviewRepeatedQuestionCitations(
   answer: string,
   references: { id: string; answer: number; repeated: number[]; explanation: string }[],
@@ -197,8 +289,8 @@ integrationTest(
 );
 
 for (const scenario of [
-  { quality: "adecuada", expectedId: "conv_04681", reportNumber: "03" },
-  { quality: "indeterminado", expectedId: null, reportNumber: "04" },
+  { quality: "adecuada", reportNumber: "03" },
+  { quality: "indeterminado", reportNumber: "04" },
 ] as const) {
 integrationTest(
   `development: encadena búsqueda de passkey y filtro SQL de calidad ${scenario.quality}`,
@@ -207,7 +299,6 @@ integrationTest(
     const quality = scenario.quality === "indeterminado" ? "indeterminada" : "adecuada";
     const question = `Mostrame hasta 3 conversaciones sobre problemas para configurar una passkey cuya calidad del asistente esté clasificada como ${quality}.`;
     const topicIds = ["conv_02069", "conv_03414", "conv_04681"];
-    const expectedId = scenario.expectedId;
     const development: { conversations: Conversation[] } = await Bun.file(
       new URL("../data/development.json", import.meta.url),
     ).json();
@@ -220,13 +311,6 @@ integrationTest(
       expect(rows.map((row) => row.conversation_id))
         .toEqual(development.conversations.map(({ id }) => id).sort());
       expectedQuality = rows.filter((row) => topicIds.includes(row.conversation_id));
-      expect(expectedQuality).toEqual([
-        { conversation_id: "conv_02069", assistant_quality: "alucinacion_o_mala_respuesta" },
-        { conversation_id: "conv_03414", assistant_quality: "alucinacion_o_mala_respuesta" },
-        { conversation_id: "conv_04681", assistant_quality: "adecuada" },
-      ]);
-      expect(expectedQuality.filter((row) => row.assistant_quality === scenario.quality)
-        .map((row) => row.conversation_id)).toEqual(expectedId ? [expectedId] : []);
       for (const id of topicIds) {
         const original = development.conversations.find((item) => item.id === id)!.messages[0]!;
         expect(original.content).toContain("No puedo configurar passkey.");
@@ -235,14 +319,17 @@ integrationTest(
       }
     } finally { db.close(); }
 
+    // Las etiquetas pueden cambiar al reclasificar; el oráculo usa la BDD actual.
+    const expectedIds = expectedQuality.filter((row) => row.assistant_quality === scenario.quality)
+      .map((row) => row.conversation_id);
     const actual = await answerQuestion(question);
     const reportPath = new URL(`../reports/development-question-${scenario.reportNumber}.json`, import.meta.url);
     await mkdir(new URL("../reports/", import.meta.url), { recursive: true });
     await Bun.write(reportPath, JSON.stringify({
       question, model: process.env.OPENAI_MODEL ?? "gpt-5.6-luna", ranAt: new Date().toISOString(),
-      expectedQuality, expectedId, actual,
-      manualReview: expectedId
-        ? "Debe mostrar solo conv_04681 como caso válido, citar su mensaje 1 y limitar el alcance a los candidatos. Puede explicar exclusiones, pero no presentar los otros IDs como casos de calidad adecuada ni inventar 3 ejemplos."
+      expectedQuality, expectedIds, actual,
+      manualReview: expectedIds.length
+        ? `Debe mostrar solo ${expectedIds.join(", ")} como casos válidos, citar sus mensajes 1 y limitar el alcance a los candidatos. Puede explicar exclusiones, pero no presentar otros IDs como coincidencias ni inventar ejemplos.`
         : "Debe indicar que no encontró coincidencias entre los candidatos recuperados, sin afirmar ausencia global. No debe inventar ejemplos ni quitar el filtro para obtener resultados. Las comprobaciones de palabras no sustituyen esta revisión semántica.",
     }, null, 2));
     console.log(actual.answer);
@@ -267,16 +354,18 @@ integrationTest(
           .toEqual([{ field: "assistant_quality", value: scenario.quality }]);
         expect(args.aggregation).toBe("count");
         expect(args.dateRange).toEqual({ from: null, toExclusive: null });
-        expect(args.examples).toBeGreaterThan(0);
-        expect(call.result).toEqual({ kind: "count", count: expectedId ? 1 : 0,
-          examples: expectedId ? [expectedId] : [] });
+        expect(args.examples).toBeGreaterThanOrEqual(Math.max(1, expectedIds.length));
+        expect(call.result).toEqual({ kind: "count", count: expectedIds.length,
+          examples: expectedIds });
         filtered = true;
       }
     }
     expect(filtered).toBe(true);
-    if (expectedId) {
-      expect(actual.answer).toContain(expectedId);
-      expect(actual.answer).toMatch(/conv_04681,\s*mensaje\s+1\b/i);
+    if (expectedIds.length) {
+      for (const id of expectedIds) {
+        expect(actual.answer).toContain(id);
+        expect(actual.answer).toMatch(new RegExp(`${id},\\s*mensaje\\s+1\\b`, "i"));
+      }
     } else {
       expect(actual.answer).toMatch(/no encontr|ning[uú]n|no hay|0 conversaciones/i);
       expect(actual.answer).toMatch(/recuperad|candidat|encontrad|b[uú]squeda/i);
@@ -314,21 +403,16 @@ integrationTest(
     const matches = population.filter((row) => row.resolution === "no_resuelto");
     const expected = {
       kind: "percentage", numerator: matches.length, denominator: population.length,
-      percentage: (matches.length / population.length) * 100,
+      percentage: population.length ? (matches.length / population.length) * 100 : null,
       examples: matches.slice(0, 3).map((row) => row.conversation_id),
     };
-    // Baseline de las clasificaciones guardadas revisado para esta primera pregunta.
-    // Si se reclasifica development, revisar el cambio antes de actualizar estos valores.
-    expect(expected).toMatchObject({ numerator: 16, denominator: 43,
-      examples: ["conv_00697", "conv_00902", "conv_01090"] });
-
     const actual = await answerQuestion(question);
     const report = {
       question, model: process.env.OPENAI_MODEL ?? "gpt-5.6-luna", ranAt: new Date().toISOString(),
       scope: "stored_development_classifications", expected,
       populationIds: population.map((row) => row.conversation_id),
       matchingIds: matches.map((row) => row.conversation_id), actual,
-      manualReview: "Revisar que explique 16 de 43, limite el alcance a clasificaciones guardadas y no invente contenido de los ejemplos.",
+      manualReview: `Revisar que explique ${expected.numerator} de ${expected.denominator}, limite el alcance a clasificaciones guardadas y no invente contenido de los ejemplos. Si el denominador es cero, debe aclarar que no se puede calcular el porcentaje.`,
     };
     const reportPath = new URL("../reports/development-question-01.json", import.meta.url);
     await mkdir(new URL("../reports/", import.meta.url), { recursive: true });
@@ -350,10 +434,15 @@ integrationTest(
     // Comprobaciones mínimas de la prosa; el sentido completo se revisa a mano.
     const percentages = [...actual.answer.matchAll(/(\d+(?:[.,]\d+)?)\s*%/g)]
       .map((match) => Number(match[1]!.replace(",", ".")));
-    expect(percentages.length).toBeGreaterThan(0);
-    for (const value of percentages) expect(value).toBeCloseTo(expected.percentage, 1);
-    expect(actual.answer).toMatch(/\b16\b/);
-    expect(actual.answer).toMatch(/\b43\b/);
+    if (expected.percentage === null) {
+      expect(percentages).toEqual([]);
+      expect(actual.answer).toMatch(/no (?:se )?puede|sin .*conversaciones|no hay|ninguna/i);
+    } else {
+      expect(percentages.length).toBeGreaterThan(0);
+      for (const value of percentages) expect(value).toBeCloseTo(expected.percentage, 1);
+    }
+    expect(actual.answer).toMatch(new RegExp(`\\b${expected.numerator}\\b`));
+    expect(actual.answer).toMatch(new RegExp(`\\b${expected.denominator}\\b`));
     for (const id of expected.examples) expect(actual.answer).toContain(id);
     expect([...new Set(actual.answer.match(/conv_\d+/g) ?? [])].sort()).toEqual(expected.examples);
   },

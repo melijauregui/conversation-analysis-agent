@@ -63,13 +63,19 @@ function initializeTables(db: Database) {
       resolution TEXT NOT NULL,
       repetition TEXT NOT NULL,
       assistant_quality TEXT NOT NULL,
-      contact_reasons_json TEXT NOT NULL,
       notes TEXT NOT NULL,
       model TEXT NOT NULL,
       configuration_json TEXT NOT NULL,
       analysis_hash TEXT NOT NULL,
       classified_at TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS conversation_contact_reasons (
+      conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+      reason TEXT NOT NULL,
+      PRIMARY KEY (conversation_id, reason)
+    );
+    CREATE INDEX IF NOT EXISTS contact_reasons_by_reason
+      ON conversation_contact_reasons(reason, conversation_id);
     CREATE TABLE IF NOT EXISTS search_documents (
       id INTEGER PRIMARY KEY,
       conversation_id TEXT NOT NULL REFERENCES conversations(id),

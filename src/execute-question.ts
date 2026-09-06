@@ -34,8 +34,15 @@ const filterGroupSchema = z.strictObject({
   filters: z.array(filterSchema).max(20),
 });
 
+const groupingSchema = z.strictObject({
+  groupBy: z.enum(["resolution", "repetition", "assistant_quality", "contact_reasons"]),
+  metrics: z.array(z.enum(["count", "percentage", "resolution_rate", "inadequate_quality_rate"])).min(1).max(4),
+  limit: z.number().int().min(1).max(100),
+});
+
 export const queryClassificationsSchema = z.strictObject({
-  aggregation: z.enum(["count", "percentage", "ranking"]),
+  aggregation: z.enum(["count", "percentage", "ranking", "grouped"]),
+  grouping: groupingSchema.nullable(),
   // null no restringe; [] representa un conjunto vacío.
   conversationIds: z.array(z.string().trim().min(1).max(200)).max(1000).nullable(),
   // Universo del análisis; para porcentajes, es el denominador.
@@ -66,9 +73,16 @@ export function parseClassificationQuery(input: unknown): ClassificationQuery {
   // En llamadas locales puede omitirse; el contrato estricto del modelo usa null.
   const query = queryClassificationsSchema.extend({
     conversationIds: queryClassificationsSchema.shape.conversationIds.default(null),
+    grouping: queryClassificationsSchema.shape.grouping.default(null),
   }).parse(input);
   if ((query.aggregation === "ranking") !== (query.ranking !== null)) {
     throw new Error("La configuración de ranking no coincide con la agregación.");
+  }
+  if ((query.aggregation === "grouped") !== (query.grouping !== null)) {
+    throw new Error("La configuración de grouping no coincide con la agregación.");
+  }
+  if (query.grouping && new Set(query.grouping.metrics).size !== query.grouping.metrics.length) {
+    throw new Error("Las métricas de grouping no deben repetirse.");
   }
   const { from, toExclusive } = query.dateRange;
   if (from && toExclusive && from >= toExclusive) {
@@ -79,8 +93,18 @@ export function parseClassificationQuery(input: unknown): ClassificationQuery {
 
 type FilterGroup = ClassificationQuery["population"];
 type Filter = FilterGroup["filters"][number];
+type Grouping = z.infer<typeof groupingSchema>;
+type Rate = { numerator: number; denominator: number; percentage: number | null };
+type GroupedResult = {
+  kind: "grouped";
+  groupBy: Grouping["groupBy"];
+  totalConversations: number;
+  items: { value: string; metrics: Partial<Record<Grouping["metrics"][number], number | Rate>> }[];
+  examples?: string[];
+};
 
 export type ClassificationQueryResult =
+  | GroupedResult
   | {
       kind: "count";
       count: number;
@@ -122,6 +146,18 @@ a candidatos de búsqueda no representa un conteo exhaustivo del dataset.
 dateRange filtra metadata.timestamp en UTC: from inclusivo, toExclusive exclusivo,
 formato YYYY-MM-DD; usá null para límites ausentes. No inventes fechas ni filtros.
 ranking debe ser null salvo aggregation=ranking, que requiere field y limit.
+Para aggregation=grouped, grouping requiere groupBy, metrics y limit; ranking=null.
+En las otras agregaciones grouping=null. groupBy permite resolution, repetition,
+assistant_quality o contact_reasons. Se aplican TODOS los filtros antes de agrupar.
+metrics: count cuenta conversaciones únicas del grupo; percentage calcula su proporción
+sobre todas las conversaciones filtradas ANTES del límite; resolution_rate calcula
+resuelto / conversaciones del grupo; inadequate_quality_rate calcula
+alucinacion_o_mala_respuesta / conversaciones del grupo. No excluyen indeterminados.
+Los grupos se ordenan por cantidad descendente y luego valor, aunque count no se solicite.
+contact_reasons agrupa textos EXACTOS: no une sinónimos ni descubre temas semánticos.
+Una conversación puede pertenecer a varios motivos; sus porcentajes pueden sumar más de 100.
+Las tasas de resolución y calidad describen la conversación, no cada motivo por separado.
+Los examples de una consulta grouped son del conjunto filtrado completo, no de cada grupo.
 examples=0 si no se solicitan ejemplos. Los ejemplos son IDs, no mensajes ni evidencia textual.
 Cuenta solo conversaciones clasificadas almacenadas, no necesariamente todo el dataset.
 No permite SQL libre ni filtros por temas, motivos de contacto, passkeys o criterios nuevos.
@@ -140,6 +176,10 @@ export function queryClassifications(
   const db = openDatabase(databasePath, "readonly");
   try {
     const examples = plan.examples > 0 ? loadExamples(db, plan) : undefined;
+
+    if (plan.aggregation === "grouped") {
+      return { ...loadGroups(db, plan), ...(examples && { examples }) };
+    }
 
     if (plan.aggregation === "count") {
       const params: SQLQueryBindings[] = [];
@@ -200,6 +240,48 @@ export function queryClassifications(
   } finally {
     db.close();
   }
+}
+
+function rate(numerator: number, denominator: number): Rate {
+  return { numerator, denominator, percentage: denominator ? numerator * 100 / denominator : null };
+}
+
+function loadGroups(db: Database, plan: ClassificationQuery): GroupedResult {
+  const grouping = plan.grouping!;
+  const params: SQLQueryBindings[] = [];
+  const where = whereClause(plan, params, true);
+  // La clave (conversation_id, reason) garantiza una sola pertenencia por motivo.
+  const memberships = grouping.groupBy === "contact_reasons"
+    ? `SELECT f.conversation_id, r.reason AS value, f.resolution, f.assistant_quality
+       FROM filtered f JOIN conversation_contact_reasons r ON r.conversation_id = f.conversation_id
+       WHERE length(trim(r.reason)) > 0`
+    : `SELECT conversation_id, ${grouping.groupBy} AS value, resolution, assistant_quality FROM filtered`;
+  const rows = db.query<{
+    total: number; value: string | null; count: number; resolved: number; inadequate: number;
+  }, SQLQueryBindings[]>(`
+    WITH filtered AS MATERIALIZED (
+      SELECT classifications.* ${classifiedFrom} WHERE ${where}
+    ), memberships AS (${memberships}), groups AS (
+      SELECT value, COUNT(*) AS count,
+        SUM(resolution = 'resuelto') AS resolved,
+        SUM(assistant_quality = 'alucinacion_o_mala_respuesta') AS inadequate
+      FROM memberships GROUP BY value ORDER BY count DESC, value
+      LIMIT ${placeholder(params, grouping.limit)}
+    )
+    SELECT totals.total, groups.* FROM (SELECT COUNT(*) AS total FROM filtered) totals
+    LEFT JOIN groups ON 1 = 1 ORDER BY groups.count DESC, groups.value
+  `).all(...params);
+  const totalConversations = rows[0]!.total;
+  const items = rows.filter((row) => row.value !== null).map((row) => {
+    const available = {
+      count: row.count,
+      percentage: rate(row.count, totalConversations),
+      resolution_rate: rate(row.resolved, row.count),
+      inadequate_quality_rate: rate(row.inadequate, row.count),
+    };
+    return { value: row.value!, metrics: Object.fromEntries(grouping.metrics.map((metric) => [metric, available[metric]])) };
+  });
+  return { kind: "grouped", groupBy: grouping.groupBy, totalConversations, items };
 }
 
 function whereClause(
