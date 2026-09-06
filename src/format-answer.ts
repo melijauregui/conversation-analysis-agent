@@ -22,6 +22,8 @@ decimales. Indicá numerador y denominador y explicá qué conjunto representa e
 Si percentage es null, explicá que no se puede calcular porque el denominador es cero.
 Respetá los filtros y el intervalo de fechas del plan (toExclusive no está incluido).
 Los resultados corresponden a conversaciones clasificadas almacenadas.
+Si conversationIds no es null, los resultados se limitan a esos IDs; no los presentes
+como totales globales. Una lista de IDs puede provenir de una búsqueda no exhaustiva.
 No inventes totales, causas, citas ni conclusiones sobre el contenido de los mensajes.
 En rankings conservá el orden y los conteos recibidos; un ranking vacío no tiene resultados.
 Los ejemplos contienen solo IDs: listalos tal cual, sin describir las conversaciones.

@@ -72,6 +72,46 @@ never silently truncated. Conversation fragmentation is not implemented yet. Req
 The source JSON is unchanged. Conversations absent from the input remain untouched.
 The database and its WAL files are local generated files excluded from Git.
 
+## Classification query tool
+
+`src/execute-question.ts` exports `queryClassificationsTool`, a strict Responses
+function definition, and `queryClassifications(input, databasePath?)`, its executor.
+The shared Zod schema is in `src/interpret-question.ts`. The executor validates
+untrusted arguments before opening SQLite; it accepts no SQL or database path from
+the model. Unsupported fields and extra properties are rejected, not silently ignored.
+
+```ts
+queryClassifications({
+  aggregation: "count",
+  conversationIds: null,
+  population: { operator: "and", filters: [] },
+  matching: {
+    operator: "and",
+    filters: [{ field: "resolution", value: "resuelto" }],
+  },
+  dateRange: { from: null, toExclusive: null },
+  ranking: null,
+  examples: 3,
+});
+```
+
+Supported aggregations are `count`, `percentage`, and `ranking`; filters are limited
+to `resolution`, `repetition`, and `assistant_quality`. Percentages use `population`
+as denominator and additionally apply `matching` for the numerator. Date bounds are
+UTC, inclusive start and exclusive end. Results cover stored classifications only;
+examples contain IDs, not original messages. Content-based conditions belong to search.
+
+`conversationIds` restricts counts, percentage denominators, rankings and examples
+to the supplied IDs (at most 1000). Use `null` for no restriction; local calls can
+also omit the field. An empty list means zero results, never the entire dataset.
+Duplicates count once; unknown or unclassified IDs do not count. This allows filtering
+IDs retrieved by `searchConversations`, but results on those candidates are not global
+totals. Example IDs remain capped at 10.
+
+The existing question interpreter delegates execution to this same function.
+Registering both tools and implementing the model's tool-selection loop is the next
+step; this change only prepares the classification tool and does not call the model.
+
 ## Search storage
 
 ### Text search
@@ -141,6 +181,16 @@ FTS5 contentless-delete requires SQLite 3.43 or newer. See [SQLite FTS5](https:/
 and [sqlite-vec vec0](https://alexgarcia.xyz/sqlite-vec/features/vec0.html).
 
 ### Hybrid search and model context
+
+`src/search-conversations.ts` exports `searchConversationsTool` (strict Responses
+function definition) and `executeSearchConversationsTool(input, configuration?)`.
+The model supplies exactly `semanticQuery`, `keywords`, and `limit`; use `keywords: []`
+for vector-only retrieval. The executor rejects extra arguments before searching.
+Database path, embedding model/dimensions and candidate limit are application configuration,
+not model arguments. The existing CLI and direct function keep their optional defaults.
+The tool returns candidates with original messages and explicitly limited coverage;
+the model must verify relevance. Both tool definitions are ready; the orchestration
+loop that registers and executes them is still pending.
 
 ```bash
 bun run search:hybrid "problemas para configurar o usar passkeys" 5 passkey passkeys

@@ -1,10 +1,12 @@
 import type { Database, SQLQueryBindings } from "bun:sqlite";
-import { interpretQuestion, type QuestionPlan } from "./interpret-question";
+import { interpretQuestion, parseClassificationQuery, queryClassificationsSchema,
+  type ClassificationQuery, type QuestionPlan } from "./interpret-question";
+import { zodResponsesFunction } from "openai/helpers/zod";
 import { formatAnswer } from "./format-answer";
 
 import { openDatabase, defaultDatabasePath } from "./database";
 
-type SupportedPlan = Extract<QuestionPlan, { kind: "supported" }>;
+type SupportedPlan = ClassificationQuery;
 type FilterGroup = SupportedPlan["population"];
 type Filter = FilterGroup["filters"][number];
 
@@ -34,6 +36,30 @@ const classifiedFrom = `
   INNER JOIN conversations ON conversations.id = classifications.conversation_id
 `;
 
+// Solo define el contrato para Responses; el código de la aplicación ejecuta la función.
+export const queryClassificationsTool = zodResponsesFunction({
+  name: "queryClassifications",
+  parameters: queryClassificationsSchema,
+  description: `Consulta clasificaciones almacenadas: resolution, repetition y assistant_quality.
+Devuelve conteos, porcentajes o rankings y, opcionalmente, hasta 10 IDs de ejemplo.
+population define el universo; matching agrega condiciones dentro de ese universo.
+Cada grupo combina filtros con and/or; un grupo vacío no restringe.
+En percentage, population es el denominador y population + matching el numerador.
+conversationIds restringe todas las operaciones, incluido el denominador y los ejemplos,
+a esos IDs (máximo 1000). Usá null para no restringir; [] devuelve un conjunto vacío.
+Podés usar IDs obtenidos de searchConversations; nunca inventes IDs. Los repetidos cuentan
+una sola vez y los inexistentes o sin clasificación no cuentan. Un resultado restringido
+a candidatos de búsqueda no representa un conteo exhaustivo del dataset.
+dateRange filtra metadata.timestamp en UTC: from inclusivo, toExclusive exclusivo,
+formato YYYY-MM-DD; usá null para límites ausentes. No inventes fechas ni filtros.
+ranking debe ser null salvo aggregation=ranking, que requiere field y limit.
+examples=0 si no se solicitan ejemplos. Los ejemplos son IDs, no mensajes ni evidencia textual.
+Cuenta solo conversaciones clasificadas almacenadas, no necesariamente todo el dataset.
+No permite SQL libre ni filtros por temas, motivos de contacto, passkeys o criterios nuevos.
+Para contenido, usá searchConversations cuando esté disponible. No omitas una condición
+que esta herramienta no puede representar para simular que respondiste la pregunta.`,
+});
+
 export function executeQuestionPlan(
   plan: QuestionPlan,
   databasePath = defaultDatabasePath,
@@ -41,6 +67,18 @@ export function executeQuestionPlan(
   if (plan.kind === "unsupported") {
     return { kind: "unsupported", reason: plan.reason };
   }
+
+  const { kind, ...query } = plan;
+  return queryClassifications(query, databasePath);
+}
+
+// Acepta argumentos sin confiar en su origen (por ejemplo, JSON enviado por el modelo).
+// La ruta de la base es configuración interna y no forma parte de la herramienta.
+export function queryClassifications(
+  input: unknown,
+  databasePath = defaultDatabasePath,
+): Exclude<QuestionQueryResult, { kind: "unsupported" }> {
+  const plan = parseClassificationQuery(input);
 
   const db = openDatabase(databasePath, "readonly");
   try {
@@ -122,9 +160,17 @@ function whereClause(
   params: SQLQueryBindings[],
   includeMatching: boolean,
 ) {
-  const parts = [sqlGroup(plan.population, params), sqlDateRange(plan.dateRange, params)];
+  const parts = [sqlGroup(plan.population, params), sqlDateRange(plan.dateRange, params),
+    sqlConversationIds(plan.conversationIds, params)];
   if (includeMatching) parts.push(sqlGroup(plan.matching, params));
   return parts.join(" AND ");
+}
+
+function sqlConversationIds(ids: string[] | null, params: SQLQueryBindings[]) {
+  if (ids === null) return "1";
+  if (ids.length === 0) return "0";
+  const placeholders = [...new Set(ids)].map((id) => placeholder(params, id));
+  return `classifications.conversation_id IN (${placeholders.join(", ")})`;
 }
 
 function sqlGroup(group: FilterGroup, params: SQLQueryBindings[]) {

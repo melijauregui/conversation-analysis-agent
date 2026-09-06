@@ -4,7 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { openDatabase, ensureVectorTable } from "../src/database";
 import { saveSearchDocuments } from "../src/search-documents";
-import { searchConversations, searchTextConversations, searchVectorConversations } from "../src/search-conversations";
+import { searchConversations, searchTextConversations, searchVectorConversations,
+  searchConversationsTool, executeSearchConversationsTool } from "../src/search-conversations";
 import type { EmbedBatch } from "../src/embed-documents";
 
 const directories: string[] = [];
@@ -113,6 +114,41 @@ function vectorFixture() {
 }
 
 const queryEmbedding: EmbedBatch = async ({ model }) => ({ model, data: [{ index: 0, embedding: [1, 0] }] });
+
+test("la herramienta expone solo parámetros de búsqueda y ejecuta la búsqueda con configuración interna", async () => {
+  const configuration = { databasePath: vectorFixture(), model: "text-embedding-3-small" as const,
+    dimensions: 2, embedBatch: queryEmbedding };
+  const input = { semanticQuery: "problemas con passkeys", keywords: ["passkey"], limit: 2 };
+  expect(searchConversationsTool.name).toBe("searchConversations");
+  expect(searchConversationsTool.strict).toBe(true);
+  expect(Object.keys(searchConversationsTool.parameters?.properties ?? {}).sort())
+    .toEqual(["keywords", "limit", "semanticQuery"]);
+  expect(searchConversationsTool.parameters?.required).toEqual(["semanticQuery", "keywords", "limit"]);
+  const result = await executeSearchConversationsTool(JSON.parse(JSON.stringify(input)), configuration);
+  expect(result).toEqual(await searchConversations({ ...configuration, ...input }));
+  expect(result.coverage).toBe("retrieved_candidates");
+  expect(result.verified).toBe(false);
+  expect(result.results[0]!.messages.length).toBeGreaterThan(0);
+  const vectorOnly = await executeSearchConversationsTool({ ...input, keywords: [] }, configuration);
+  expect(vectorOnly.retrieved.text).toBe(0);
+});
+
+test("la herramienta rechaza configuración externa, filtros no soportados y entradas inválidas", async () => {
+  let calls = 0;
+  const configuration = { databasePath: vectorFixture(), model: "text-embedding-3-small" as const,
+    dimensions: 2, embedBatch: async (request: Parameters<EmbedBatch>[0]) => {
+      calls++; return queryEmbedding(request);
+    } };
+  const query = { semanticQuery: "passkey", keywords: [], limit: 2 };
+  for (const extra of [{ databasePath: "otra.sqlite" }, { model: "text-embedding-3-large" },
+    { dimensions: 100 }, { candidateLimit: 100 }, { sql: "SELECT * FROM messages" },
+    { filters: { resolution: "resuelto" } }, { semanticQuery: " " }, { keywords: ["***"] },
+    { limit: 101 }, { keywords: undefined }]) {
+    await expect(executeSearchConversationsTool({ ...query, ...extra }, configuration))
+      .rejects.toThrow(/Unrecognized key|Invalid|Too small|Too big|palabra clave/);
+  }
+  expect(calls).toBe(0);
+});
 
 test("búsqueda vectorial ordena por coseno, deduplica y usa solo el modelo solicitado", async () => {
   const databasePath = vectorFixture();

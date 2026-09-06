@@ -5,7 +5,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { saveClassifiedBatch } from "../src/save-classified-batch";
-import { executeQuestionPlan } from "../src/execute-question";
+import { executeQuestionPlan, queryClassifications, queryClassificationsTool } from "../src/execute-question";
 import type { QuestionPlan } from "../src/interpret-question";
 import type { Conversation, ConversationLabels } from "../src/classify-conversation";
 
@@ -91,6 +91,7 @@ function supported(overrides: Partial<Extract<QuestionPlan, { kind: "supported" 
   return {
     kind: "supported",
     aggregation: "count",
+    conversationIds: null,
     population: { operator: "and", filters: [] },
     matching: { operator: "and", filters: [] },
     dateRange: { from: null, toExclusive: null },
@@ -210,4 +211,77 @@ test("devuelve la cantidad pedida de ejemplos del conjunto filtrado", () => {
   expect(result.kind).toBe("count");
   if (result.kind !== "count") return;
   expect(result.examples).toEqual(["a"]);
+});
+
+test("queryClassifications acepta argumentos de herramienta sin kind y reutiliza los conteos", () => {
+  const databasePath = seed();
+  const { kind, ...query } = supported({ examples: 2 }) as Extract<QuestionPlan, { kind: "supported" }>;
+  expect(queryClassifications(JSON.parse(JSON.stringify(query)), databasePath))
+    .toEqual({ kind: "count", count: 3, examples: ["a", "b"] });
+  expect(queryClassificationsTool.name).toBe("queryClassifications");
+  expect(queryClassificationsTool.strict).toBe(true);
+  expect(queryClassificationsTool.parameters?.properties).not.toHaveProperty("databasePath");
+  expect(queryClassificationsTool.parameters?.properties).not.toHaveProperty("kind");
+});
+
+test("rechaza parámetros inválidos y condiciones no soportadas antes de abrir SQLite", () => {
+  const { kind, ...query } = supported() as Extract<QuestionPlan, { kind: "supported" }>;
+  const invalid = [
+    { ...query, sql: "DROP TABLE classifications" },
+    { ...query, databasePath: "otra.sqlite" },
+    { ...query, topic: "passkey" },
+    { ...query, matching: { ...query.matching, topic: "passkey" } },
+    { ...query, matching: { operator: "and", filters: [{ field: "resolution", value: "inventado" }] } },
+    { ...query, matching: { operator: "and", filters: [{ field: "notes", value: "passkey" }] } },
+    { ...query, aggregation: "ranking", ranking: null },
+    { ...query, ranking: { field: "resolution", limit: 2 } },
+    { ...query, aggregation: "ranking", ranking: { field: "resolution; DROP TABLE classifications", limit: 2 } },
+    { ...query, aggregation: "ranking", ranking: { field: "resolution", limit: 21 } },
+    { ...query, examples: 11 },
+    { ...query, dateRange: { from: "2024-02-30", toExclusive: null } },
+    { ...query, dateRange: { from: "2024-02-01", toExclusive: "2024-01-01" } },
+  ];
+  for (const input of invalid) {
+    expect(() => queryClassifications(input, "/no-existe/test.sqlite"))
+      .toThrow(/Unrecognized key|Invalid|Too big|ranking|intervalo/);
+  }
+});
+
+test("IDs restringen conteos y ejemplos, sin duplicados ni IDs ajenos al conjunto clasificado", () => {
+  const databasePath = seed();
+  const plan = supported({ conversationIds: ["a", "a", "b", "d", "inexistente", "a') OR 1=1 --"],
+    matching: { operator: "and", filters: [{ field: "resolution", value: "no_resuelto" }] }, examples: 10 });
+  expect(executeQuestionPlan(plan, databasePath)).toEqual({ kind: "count", count: 1, examples: ["a"] });
+  expect(executeQuestionPlan(supported({ conversationIds: ["c"],
+    dateRange: { from: "2024-01-01", toExclusive: "2024-02-01" } }), databasePath))
+    .toEqual({ kind: "count", count: 0 });
+});
+
+test("IDs restringen también el denominador de porcentajes y los rankings", () => {
+  const databasePath = seed();
+  expect(executeQuestionPlan(supported({ conversationIds: ["a", "b"], aggregation: "percentage",
+    matching: { operator: "and", filters: [{ field: "resolution", value: "no_resuelto" }] },
+  }), databasePath)).toEqual({ kind: "percentage", numerator: 1, denominator: 2, percentage: 50 });
+  expect(executeQuestionPlan(supported({ conversationIds: ["b"], aggregation: "ranking",
+    ranking: { field: "resolution", limit: 5 }, examples: 10,
+  }), databasePath)).toEqual({ kind: "ranking", field: "resolution",
+    items: [{ value: "resuelto", count: 1 }], examples: ["b"] });
+});
+
+test("IDs vacíos nunca amplían la consulta; null u omisión conservan el alcance original", () => {
+  const databasePath = seed();
+  expect(executeQuestionPlan(supported({ conversationIds: [], examples: 10 }), databasePath))
+    .toEqual({ kind: "count", count: 0, examples: [] });
+  expect(executeQuestionPlan(supported({ conversationIds: [], aggregation: "percentage" }), databasePath))
+    .toEqual({ kind: "percentage", numerator: 0, denominator: 0, percentage: null });
+  expect(executeQuestionPlan(supported({ conversationIds: [], aggregation: "ranking",
+    ranking: { field: "resolution", limit: 5 } }), databasePath))
+    .toEqual({ kind: "ranking", field: "resolution", items: [] });
+  const { kind, conversationIds, ...query } = supported() as Extract<QuestionPlan, { kind: "supported" }>;
+  expect(queryClassifications(query, databasePath)).toEqual({ kind: "count", count: 3 });
+  expect(queryClassifications({ ...query, conversationIds: null }, databasePath)).toEqual({ kind: "count", count: 3 });
+  for (const ids of [[""], [" "], [123], "a", Array(1001).fill("a")]) {
+    expect(() => queryClassifications({ ...query, conversationIds: ids }, databasePath))
+      .toThrow(/Invalid|Too small|Too big/);
+  }
 });

@@ -1,10 +1,9 @@
 import OpenAI from "openai";
-import { Database } from "bun:sqlite";
 import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 
 const filterSchema = z.discriminatedUnion("field", [
-  z.object({
+  z.strictObject({
     field: z.literal("resolution"),
     value: z.enum([
       "resuelto",
@@ -13,11 +12,11 @@ const filterSchema = z.discriminatedUnion("field", [
       "indeterminado",
     ]),
   }),
-  z.object({
+  z.strictObject({
     field: z.literal("repetition"),
     value: z.enum(["presente", "ausente", "indeterminado"]),
   }),
-  z.object({
+  z.strictObject({
     field: z.literal("assistant_quality"),
     value: z.enum([
       "adecuada",
@@ -28,19 +27,20 @@ const filterSchema = z.discriminatedUnion("field", [
 ]);
 
 // AND/OR combina los filtros dentro de cada conjunto. Un conjunto vacío incluye todo.
-const filterGroupSchema = z.object({
+const filterGroupSchema = z.strictObject({
   operator: z.enum(["and", "or"]),
-  filters: z.array(filterSchema),
+  filters: z.array(filterSchema).max(20),
 });
 
-const supportedQuestionSchema = z.object({
-  kind: z.literal("supported"),
+export const queryClassificationsSchema = z.strictObject({
   aggregation: z.enum(["count", "percentage", "ranking"]),
+  // null no restringe; [] representa un conjunto vacío.
+  conversationIds: z.array(z.string().trim().min(1).max(200)).max(1000).nullable(),
   // Universo del análisis; para porcentajes, es el denominador.
   population: filterGroupSchema,
   // Condición adicional que selecciona el numerador o los casos a contar.
   matching: filterGroupSchema,
-  dateRange: z.object({
+  dateRange: z.strictObject({
     from: z.string().date().nullable(),
     toExclusive: z.string().date().nullable(),
   }),
@@ -57,7 +57,27 @@ const supportedQuestionSchema = z.object({
   examples: z.number().int().min(0).max(10),
 });
 
-const unsupportedQuestionSchema = z.object({
+export type ClassificationQuery = z.infer<typeof queryClassificationsSchema>;
+
+// Se comparte entre la interpretación actual y la futura llamada de herramienta.
+export function parseClassificationQuery(input: unknown): ClassificationQuery {
+  // En llamadas locales puede omitirse; el contrato estricto del modelo usa null.
+  const query = queryClassificationsSchema.extend({
+    conversationIds: queryClassificationsSchema.shape.conversationIds.default(null),
+  }).parse(input);
+  if ((query.aggregation === "ranking") !== (query.ranking !== null)) {
+    throw new Error("La configuración de ranking no coincide con la agregación.");
+  }
+  const { from, toExclusive } = query.dateRange;
+  if (from && toExclusive && from >= toExclusive) {
+    throw new Error("El intervalo de fechas debe tener inicio anterior al fin.");
+  }
+  return query;
+}
+
+const supportedQuestionSchema = queryClassificationsSchema.extend({ kind: z.literal("supported") });
+
+const unsupportedQuestionSchema = z.strictObject({
   kind: z.literal("unsupported"),
   reason: z.string(),
 });
@@ -71,6 +91,8 @@ export type QuestionPlan = z.infer<typeof questionPlanSchema>;
 
 const instructions = `Interpretá preguntas sobre clasificaciones guardadas.
 Solo disponibles: resolution, repetition, assistant_quality.
+conversationIds restringe a IDs explícitos; null si no se solicitan IDs concretos.
+No inventes IDs. Una lista vacía representa cero conversaciones.
 
 population define el conjunto base de conversaciones CLASIFICADAS. matching agrega
 condiciones dentro de ese conjunto. Cada grupo combina sus filtros con and u or;
@@ -119,7 +141,7 @@ export async function interpretQuestion(
     ],
     text: {
       format: zodTextFormat(
-        z.object({ plan: questionPlanSchema }),
+        z.strictObject({ plan: questionPlanSchema }),
         "question_plan",
       ),
     },
@@ -130,22 +152,8 @@ export async function interpretQuestion(
   }
   const plan = response.output_parsed.plan;
   if (plan.kind === "supported") {
-    for (const filter of [
-      ...plan.population.filters,
-      ...plan.matching.filters,
-    ]) {
-    }
-    if ((plan.aggregation === "ranking") !== (plan.ranking !== null)) {
-      throw new Error(
-        "La configuración de ranking no coincide con la agregación.",
-      );
-    }
-    const { from, toExclusive } = plan.dateRange;
-    if (from && toExclusive && from >= toExclusive) {
-      throw new Error(
-        "El intervalo de fechas debe tener inicio anterior al fin.",
-      );
-    }
+    const { kind, ...query } = plan;
+    parseClassificationQuery(query);
   }
   return plan;
 }
