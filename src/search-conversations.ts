@@ -8,6 +8,11 @@ const textSearchSchema = z.object({
   databasePath: z.string().min(1).default(defaultDatabasePath),
 });
 
+const hybridSearchSchema = textSearchSchema.omit({ query: true }).extend({
+  semanticQuery: z.string().trim().min(1).max(1000),
+  keywords: z.array(z.string().trim().min(1).max(100)).max(20).default([]),
+});
+
 type DocumentType = "contact_reasons" | "notes" | "conversation";
 export type TextSearchResult = {
   conversation_id: string;
@@ -80,20 +85,21 @@ function attachConversationMessages(results: RankedConversation[], databasePath:
 // Resultado listo para entregarse a una futura tool: candidatos y evidencia original.
 // No verifica semánticamente los candidatos ni genera una respuesta final con un LLM.
 export async function searchConversations(
-  options: z.input<typeof textSearchSchema> & EmbeddingOptions & { candidateLimit?: number },
+  options: z.input<typeof hybridSearchSchema> & EmbeddingOptions & { candidateLimit?: number },
 ) {
-  const { query, limit, databasePath } = textSearchSchema.parse(options);
+  const { semanticQuery, keywords, limit, databasePath } = hybridSearchSchema.parse(options);
   const candidateLimit = z.number().int().min(limit).max(100)
     .parse(options.candidateLimit ?? Math.min(100, Math.max(20, limit * 3)));
   // Valida ambos caminos antes de hacer una llamada de embeddings.
-  buildTextQuery(query);
+  const match = buildKeywordQuery(keywords);
   getEmbeddingConfiguration(options);
-  const searchOptions = { ...options, query, databasePath, limit: candidateLimit };
-  const text = searchTextConversations(searchOptions);
+  const searchOptions = { ...options, query: semanticQuery, databasePath, limit: candidateLimit };
+  const text = match ? executeTextSearch(match, candidateLimit, databasePath) : [];
   const vector = await searchVectorConversations(searchOptions);
   const ranked = combineRankings(text, vector, limit);
   return {
-    query,
+    semanticQuery,
+    keywords,
     coverage: "retrieved_candidates" as const,
     verified: false as const,
     retrieved: { text: text.length, vector: vector.length },
@@ -173,11 +179,26 @@ function buildTextQuery(query: string) {
   return [...new Set(terms)].map((term) => `"${term}"`).join(" AND ");
 }
 
+function buildKeywordQuery(keywords: string[]) {
+  // Cada entrada es un término o frase literal, nunca sintaxis FTS.
+  // Por ejemplo: ["passkey", "sin contraseña"] → "passkey" OR "sin contraseña".
+  const phrases = keywords.map((keyword) => {
+    const terms = keyword.normalize("NFC").match(/[\p{L}\p{N}][\p{L}\p{N}\p{M}]*/gu);
+    if (!terms?.length) throw new Error("Cada palabra clave debe incluir al menos una palabra o un número.");
+    return `"${terms.join(" ")}"`;
+  });
+  return [...new Set(phrases)].join(" OR ");
+}
+
 // Coincidencias léxicas: todas las palabras deben aparecer en un mismo documento.
 // No interpreta preguntas ni llama a un modelo.
 export function searchTextConversations(options: z.input<typeof textSearchSchema>): TextSearchResult[] {
   const { query, limit, databasePath } = textSearchSchema.parse(options);
   const match = buildTextQuery(query);
+  return executeTextSearch(match, limit, databasePath);
+}
+
+function executeTextSearch(match: string, limit: number, databasePath: string): TextSearchResult[] {
   const db = openDatabase(databasePath, "readonly");
   try {
     const rows = db.query<{

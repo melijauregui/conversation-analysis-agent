@@ -143,10 +143,10 @@ and [sqlite-vec vec0](https://alexgarcia.xyz/sqlite-vec/features/vec0.html).
 ### Hybrid search and model context
 
 ```bash
-bun run search:hybrid "passkey" 5
+bun run search:hybrid "problemas para configurar o usar passkeys" 5 passkey passkeys
 ```
 
-`searchConversations({ query, limit, candidateLimit?, databasePath?, model?, dimensions? })`
+`searchConversations({ semanticQuery, keywords?, limit, candidateLimit?, databasePath?, model?, dimensions? })`
 combines FTS5 and vector retrieval in `src/search-conversations.ts`. Each path retrieves
 `candidateLimit` unique conversations (default: three times the final limit, at least
 20 and at most 100). `candidateLimit` must be at least `limit`. The final limit is
@@ -166,9 +166,13 @@ result retains its text/vector rank and matching documents, plus the complete or
 messages with `message_index`, `role` and `content`. Original messages are read only
 for the final selection. Text-only and vector-only candidates remain eligible.
 
-The query is currently shared by both paths: FTS still requires all literal words
-in one document, while vector search uses the full phrase. Hybrid fusion does not
-expand terms or reinterpret intent. An empty ranking contributes nothing; an API or
+`semanticQuery` is used only for the query embedding. Optional `keywords` are literal
+terms or phrases combined with OR for FTS (up to 20 entries, 100 characters each).
+For example, `["passkey", "passkeys"]` matches either word; `["sin contraseña"]`
+matches that phrase. Operators and punctuation are never accepted as FTS syntax.
+Omitting `keywords` or passing `[]` skips FTS and uses only vector retrieval. The
+standalone `search:text` command keeps its existing all-words (AND) behavior.
+The result includes both input fields. An empty ranking contributes nothing; an API or
 database error is propagated, rather than silently reporting a complete hybrid search.
 
 This is the payload for a future model tool, not a final analytical answer. The model

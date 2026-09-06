@@ -170,7 +170,7 @@ test("no llama a la API con índice inexistente, sin modelo compatible o argumen
 
 test("la búsqueda híbrida fusiona por posición, conserva fuentes y devuelve originales", async () => {
   const databasePath = vectorFixture();
-  const options = { query: "passkey", limit: 4, candidateLimit: 4, databasePath,
+  const options = { semanticQuery: "problemas para configurar passkeys", keywords: ["passkey", "passkeys"], limit: 4, candidateLimit: 4, databasePath,
     model: "text-embedding-3-small" as const, dimensions: 2, embedBatch: queryEmbedding };
   const hybrid = await searchConversations(options);
   expect(hybrid.coverage).toBe("retrieved_candidates");
@@ -193,7 +193,7 @@ test("la búsqueda híbrida fusiona por posición, conserva fuentes y devuelve o
 
 test("si FTS no encuentra palabras, conserva los candidatos vectoriales sin inventar coincidencias", async () => {
   const databasePath = vectorFixture();
-  const result = await searchConversations({ query: "sin contraseña", databasePath, limit: 2,
+  const result = await searchConversations({ semanticQuery: "sin contraseña", keywords: ["inexistente"], databasePath, limit: 2,
     model: "text-embedding-3-small", dimensions: 2, embedBatch: queryEmbedding });
   expect(result.retrieved.text).toBe(0);
   expect(result.results.map(({ conversation_id }) => conversation_id)).toEqual(["a", "b"]);
@@ -202,7 +202,7 @@ test("si FTS no encuentra palabras, conserva los candidatos vectoriales sin inve
 
 test("la búsqueda híbrida informa fallos de API y de evidencia, en vez de devolver contexto incompleto", async () => {
   const databasePath = vectorFixture();
-  const options = { query: "passkey", databasePath, limit: 1,
+  const options = { semanticQuery: "problemas para configurar passkeys", keywords: ["passkey", "passkeys"], databasePath, limit: 1,
     model: "text-embedding-3-small" as const, dimensions: 2, embedBatch: queryEmbedding };
   await expect(searchConversations({ ...options, candidateLimit: 0 })).rejects.toThrow();
   await expect(searchConversations({ ...options, embedBatch: async () => { throw new Error("API falló"); } }))
@@ -210,4 +210,48 @@ test("la búsqueda híbrida informa fallos de API y de evidencia, en vez de devo
   const db = openDatabase(databasePath, "existing");
   try { db.run("DELETE FROM messages WHERE conversation_id = 'a'"); } finally { db.close(); }
   await expect(searchConversations(options)).rejects.toThrow("Faltan los mensajes originales de a");
+});
+
+test("usa OR entre palabras clave y envía solo semanticQuery al embedding", async () => {
+  const databasePath = vectorFixture();
+  const result = await searchConversations({
+    semanticQuery: "problemas para entrar a mi cuenta", keywords: ["passkey", "tarjeta"],
+    databasePath, limit: 4, model: "text-embedding-3-small", dimensions: 2,
+    embedBatch: async (request) => {
+      expect(request.input).toEqual(["problemas para entrar a mi cuenta"]);
+      return queryEmbedding(request);
+    },
+  });
+  expect(result.semanticQuery).toBe("problemas para entrar a mi cuenta");
+  expect(result.keywords).toEqual(["passkey", "tarjeta"]);
+  expect(result.retrieved.text).toBe(4);
+  expect(result.results.every(({ text }) => text !== null)).toBe(true);
+});
+
+test("sin keywords omite FTS; frases y operadores se tratan como texto literal", async () => {
+  const databasePath = vectorFixture();
+  const options = { semanticQuery: "passkey", databasePath, limit: 4,
+    model: "text-embedding-3-small" as const, dimensions: 2, embedBatch: queryEmbedding };
+  for (const keywords of [undefined, []]) {
+    const result = await searchConversations({ ...options, keywords });
+    expect(result.keywords).toEqual([]);
+    expect(result.retrieved).toEqual({ text: 0, vector: 3 });
+    expect(result.results.every(({ text }) => text === null)).toBe(true);
+  }
+  const phrase = await searchConversations({ ...options, keywords: ["passkey nueva"] });
+  expect(phrase.results.filter(({ text }) => text).map(({ conversation_id }) => conversation_id)).toEqual(["b"]);
+  const literal = await searchConversations({ ...options, keywords: ['"passkey" OR tarjeta'] });
+  expect(literal.retrieved.text).toBe(0);
+});
+
+test("rechaza palabras clave inválidas antes de llamar al modelo", async () => {
+  const databasePath = vectorFixture();
+  let calls = 0;
+  for (const keywords of [[""], ["  "], ["***"], ["x".repeat(101)], Array(21).fill("passkey")]) {
+    await expect(searchConversations({ semanticQuery: "acceso", keywords, databasePath,
+      model: "text-embedding-3-small", dimensions: 2,
+      embedBatch: async (request) => { calls++; return queryEmbedding(request); },
+    })).rejects.toThrow();
+  }
+  expect(calls).toBe(0);
 });
