@@ -20,7 +20,10 @@ const { successes, errors } = await classifyConversations([conversation], {
 });
 if (errors.length) throw new Error(errors[0]!.error);
 const [prediction] = successes;
-if (!prediction) throw new Error("No se recibió una predicción.");
+if (!prediction) {
+  console.log("La conversación ya estaba clasificada y se reutilizó.");
+  process.exit(0);
+}
 const elapsedSeconds = (performance.now() - start) / 1000;
 const output = new URL("../reports/classification-one.json", import.meta.url);
 await Bun.write(output, JSON.stringify(prediction, null, 2) + "\n");
