@@ -17,6 +17,7 @@
   },
   "scripts": {
     "data:import": "bun scripts/import-conversations.ts",
+    "search:text": "bun scripts/search-text.ts",
     "data:profile": "bun ./scripts/phase0.ts profile",
     "eval:prepare": "bun ./scripts/phase0.ts prepare",
     "eval:validate": "bun ./scripts/phase0.ts validate",
