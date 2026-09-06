@@ -4,40 +4,69 @@ Estos criterios se aplican a las conversaciones completas de desarrollo y testin
 
 ## Resolución
 
-- `resuelto`: todos los pedidos sustantivos tienen confirmación pertinente del usuario, una respuesta informativa clara que contesta lo preguntado o la gestión/aprobación de un trámite administrativo (como reembolsos, cobros duplicados o cancelaciones) aceptada con conformidad por el usuario.
-- `parcialmente_resuelto`: al menos un pedido está resuelto y otro queda explícitamente sin resolver o pendiente.
-- `no_resuelto`: ningún pedido está resuelto y hay evidencia de que el problema sigue, el usuario abandona sin resolverlo o queda pendiente de otro equipo.
-- `indeterminado`: falta evidencia o hay señales contradictorias que impiden establecer el resultado. También se usa cuando un pedido se resuelve, pero el resultado de otro es incierto.
+Evaluar el resultado de los pedidos del usuario a nivel conversacional. Una confirmación pertinente como «anduvo» es evidencia de éxito; no verifica operaciones externas ni determina la calidad del asistente.
 
-Primero considerar el resultado de cada pedido; después asignar la etiqueta de la conversación. Si hay un pedido resuelto y otro explícitamente pendiente, hay evidencia suficiente de resolución parcial aunque exista además otro incierto. Si no hay pedidos resueltos y alguno está explícitamente pendiente, usar `no_resuelto`, salvo contradicciones sobre ese mismo resultado que obliguen a usar `indeterminado`.
+### Identificar el pedido y su resultado
 
-Una pregunta como «¿cómo exporto los datos?» puede quedar respondida con instrucciones claras, sin exigir que el usuario ejecute la exportación. En cambio, ante «no puedo exportar», las instrucciones por sí solas no demuestran que el problema se haya resuelto sin confirmación del usuario.
+Agrupar preguntas de diagnóstico y posibles soluciones del mismo problema como un solo pedido. Distinguir una consulta informativa («¿puedo cancelar?») de una solicitud de acción («cancelá mi suscripción»).
 
-En trámites administrativos y financieros (como reembolsos, cobros duplicados o cancelaciones), al no disponer de sistemas externos para verificar la acreditación bancaria en tiempo real, la confirmación del asistente de haber aprobado, gestionado o iniciado la devolución sumada a la expresión de conformidad del usuario («ahí probé y se solucionó», «quedo conforme», «genial, anduvo», «perfecto, quedó») se considera `resuelto` a nivel de soporte. Se diferencia de casos donde el usuario solo confirma una acción desconectada (por ejemplo, «ahora entró» que solo acredita haber iniciado sesión), donde el trámite queda aplazado («podés intentar más tarde») o donde se deriva a otro equipo (que sigue pendiente de resolución).
+Para cada pedido, distinguir:
 
-Un «gracias» o el silencio por sí solos no prueban resolución. Una confirmación breve sirve cuando el usuario da por cerrada la consulta con satisfacción. Una derivación aceptada a otro equipo sigue pendiente dentro de la conversación.
+- **Resuelto:** una consulta informativa recibe una respuesta clara que la atiende, el usuario confirma pertinentemente el éxito, o acepta con conformidad la gestión/aprobación/inicio de un trámite. Una baja gestionada para fin de mes no queda pendiente solo por su fecha de efecto.
+- **Pendiente o sin responder:** hay evidencia de que el problema sigue, una derivación a otro equipo, un aplazamiento sin gestión, abandono explícito sin solución o un pedido que nunca recibió una respuesta que lo atendiera.
+- **Incierto:** hubo una propuesta o respuesta, pero falta evidencia del resultado, la confirmación se refiere ambiguamente a otra acción o hay señales contradictorias sobre ese mismo resultado. El silencio y un «gracias» aislado no demuestran éxito ni fracaso.
 
-Las preguntas sobre posibles causas o pasos para el mismo problema no se cuentan automáticamente como pedidos independientes. Por ejemplo, «no puedo entrar, ¿pruebo otro dispositivo?» describe un mismo objetivo.
+### Interpretar las confirmaciones
 
-## Repetición del usuario
+Vincular la confirmación con el pedido y la respuesta inmediatamente relevante:
 
-- `presente`: vuelve a comunicar un pedido o dato ya suministrado porque no fue atendido o se lo preguntan nuevamente. También cuenta una referencia explícita como «te lo mandé arriba» cuando se verifica el antecedente.
-- `ausente`: no se observa repetición innecesaria del usuario.
-- `indeterminado`: no se puede distinguir una repetición innecesaria de una aclaración útil.
+- Si la respuesta atiende el pedido y el usuario expresa éxito, aceptar esa confirmación salvo evidencia contradictoria. Un «probalo ahora» genérico no introduce por sí solo otro objetivo.
+- Si el usuario confirma una acción intermedia concreta, como acceder al portal, eso no confirma una cancelación o devolución. Si el resultado del trámite sigue incierto, conservar esa incertidumbre.
+- Si el usuario confirma el resultado del pedido, los defectos del consejo se evalúan en `assistant_quality`; no invalidan por sí solos la confirmación.
 
-Revisar el mensaje original y el repetido. No cuentan agradecimientos, datos nuevos ni repeticiones del asistente. Si el asistente pide otra vez un dato, pero el usuario no lo repite ni hace referencia a haberlo dado, registrar ese problema en notas sin marcar repetición del usuario como observada. «Es la tercera vez que me pasa» describe recurrencia del problema, no necesariamente repetición de información.
+Ejemplos ilustrativos: tras solicitar cambiar el domicilio de facturación, «ya aparece el domicilio nuevo» confirma el pedido; «ya puedo abrir el portal» solo confirma el acceso. Una consulta sobre cómo hacerlo puede quedar respondida con instrucciones sin exigir que el cambio se ejecute.
 
-## Motivos de contacto
+### Elegir la etiqueta de la conversación
 
-`contact_reasons` contiene una o más frases breves sobre lo que busca el usuario. No es todavía una taxonomía cerrada de temas. Incluir pedidos adicionales sustantivos, pero no convertir cada pregunta de diagnóstico en un tema independiente.
+Aplicar estas reglas en orden, después de evaluar cada pedido:
+
+1. `resuelto`: todos los pedidos están resueltos.
+2. `parcialmente_resuelto`: al menos uno está resuelto y otro explícitamente pendiente o sin responder, aunque haya además otro incierto.
+3. `no_resuelto`: ninguno está resuelto y hay evidencia de al menos uno pendiente o sin responder.
+4. `indeterminado`: los demás casos, incluido un pedido resuelto junto a otro incierto.
+
+Una contradicción que impide establecer el resultado de un pedido lo deja incierto; no tratarla como prueba de que está pendiente. Para `no_resuelto`, identificar evidencia de falta de resolución; para `indeterminado`, identificar qué resultado no puede establecerse.
 
 ## Calidad de respuesta del asistente (`assistant_quality`)
 
-Evalúa la veracidad, coherencia y pertinencia de las respuestas del asistente, independientemente del reporte de éxito del usuario. La calidad del consejo del asistente y la resolución son dimensiones distintas: una conversación puede catalogarse como `resuelto` a nivel conversacional si el usuario manifiesta conformidad, pero contener una respuesta incorrecta, engañosa o perjudicial.
+Evaluar la asistencia completa por sus respuestas y acciones observables. El éxito, desacuerdo o abandono del usuario no prueban por sí solos buena o mala calidad. Se permite `resuelto` junto con `alucinacion_o_mala_respuesta`.
 
-- `adecuada`: las respuestas e instrucciones son pertinentes, coherentes y razonables para la consulta realizada.
-- `alucinacion_o_mala_respuesta`: el asistente provee información falsa, instrucciones destructivas o absurdas (por ejemplo, borrar y recrear la cuenta para cancelar una suscripción anual), marcadores de posición sin reemplazar (como «$X» o «Y meses») o responde sobre un problema completamente desconectado de lo solicitado.
-- `indeterminado`: la indicación es sospechosa o ambigua, pero no puede confirmarse como errónea sin acceso a la documentación o políticas internas del producto.
+Aplicar estas reglas en orden:
+
+1. `alucinacion_o_mala_respuesta` si hay un fallo concreto:
+   - Información demostrablemente falsa, instrucciones destructivas o absurdas, o marcadores sin completar como «$X» y «Y meses» en la respuesta final.
+   - Diagnóstico técnico sin un problema técnico planteado, o consejos sobre un problema distinto al solicitado.
+   - Solicitar otra vez un dato explícito, utilizable y ya disponible sin justificación, o continuar pidiendo datos sin atender una objeción relevante ni explicar su necesidad.
+2. `indeterminado` si existe una sospecha concreta de error que no puede resolverse sin documentación o políticas externas, y no hay otro fallo claro.
+3. `adecuada` si la asistencia es pertinente, coherente y razonable y no hay evidencia suficiente de los fallos anteriores. No exige redacción perfecta.
+
+Distinguir defectos menores de fallos de asistencia: repetir una instrucción pertinente, añadir «probalo y confirmame» o usar una frase torpe no basta para marcar mala respuesta. Decir genéricamente que faltan datos y luego reconocerlos y continuar no equivale a pedir nuevamente un dato concreto. Verificar o aclarar información incompleta puede ser razonable.
+
+No inventar políticas para demostrar un error: una política desconocida no es automáticamente falsa ni sospechosa. No exigir verificación externa de cada respuesta para usar `adecuada`.
+
+## Repetición del usuario
+
+Buscar información o pedidos que el usuario vuelve a comunicar porque fueron ignorados o solicitados otra vez:
+
+- `presente`: hay un mensaje original y otro donde el usuario repite la información o señala que ya la dio, con antecedente verificable.
+- `ausente`: no se observa esa conducta. Incluye al asistente repitiéndose o pidiendo un dato de nuevo cuando el usuario no lo repite ni remite al mensaje previo.
+- `indeterminado`: no puede distinguirse repetición innecesaria de una aclaración útil.
+
+No contar datos nuevos, cortesías ni recurrencia del problema («me pasó varias veces»). Una falla de contexto del asistente puede justificar mala calidad sin repetición del usuario. Para `presente`, referenciar ambos mensajes en `notes`.
+
+## Motivos de contacto
+
+`contact_reasons` contiene una o más frases breves sobre los objetivos del usuario. No hay una taxonomía cerrada. Incluir pedidos adicionales sustantivos; las preguntas de diagnóstico del mismo objetivo no son motivos independientes.
 
 ## Cómo revisar los archivos
 
@@ -54,3 +83,5 @@ No usar las etiquetas de testing como ejemplos del prompt ni ajustar instruccion
 ## Referencia
 
 La práctica de definir criterios explícitos y combinar evaluación con revisión humana se describe en [Demystifying Evals for AI Agents, Anthropic](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents). Las categorías y reglas concretas de este archivo son decisiones de este proyecto, no un estándar universal.
+
+La estructura por dimensiones, reglas explícitas y ejemplos breves se apoya en [Prompt engineering, OpenAI](https://developers.openai.com/api/docs/guides/prompt-engineering). La mejora de precisión debe comprobarse sobre desarrollo manteniendo las condiciones de ejecución; la claridad del prompt no la garantiza.

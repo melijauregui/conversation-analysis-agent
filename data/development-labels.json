@@ -15,12 +15,12 @@
     },
     {
       "conversation_id": "conv_01179",
-      "resolution": "indeterminado",
+      "resolution": "resuelto",
       "frustration": "ausente",
       "repetition": "ausente",
       "assistant_quality": "alucinacion_o_mala_respuesta",
       "contact_reasons": ["Cambiar la fecha de facturación"],
-      "notes": "M10 afirma cambiar a una fecha que el usuario no especificó. M11 no aclara qué fecha quedó ni cómo se comprobó el cambio.",
+      "notes": "M10 afirma cambiar la fecha y M11 confirma que se solucionó: resolución conversacional. El usuario nunca indicó la fecha y las preguntas técnicas de M4–M9 no corresponden al pedido; esos fallos justifican mala calidad sin anular por sí solos la confirmación de M11.",
       "reviewed": true
     },
     {
@@ -93,9 +93,9 @@
       "resolution": "no_resuelto",
       "frustration": "ausente",
       "repetition": "ausente",
-      "assistant_quality": "adecuada",
+      "assistant_quality": "alucinacion_o_mala_respuesta",
       "contact_reasons": ["Conocer los métodos de pago aceptados"],
-      "notes": "La pregunta no recibe una lista de métodos; se deriva a otro canal en M4–M5.",
+      "notes": "La pregunta sobre métodos de pago (M1) queda sin responder. El usuario introduce un cobro y un ID en M3, pero no describe un error. El asistente asume que existe uno y pide una captura en M4, sin aclarar la consulta; M5 solo acepta la derivación, no confirma resolución.",
       "reviewed": true
     },
     {
@@ -113,9 +113,9 @@
       "resolution": "resuelto",
       "frustration": "presente",
       "repetition": "ausente",
-      "assistant_quality": "adecuada",
+      "assistant_quality": "alucinacion_o_mala_respuesta",
       "contact_reasons": ["Consultar la baja de una funcionalidad adicional"],
-      "notes": "M8 responde cuándo se cancela el add-on y M9 expresa éxito. El pedido inicial pregunta por la posibilidad de baja. M1 expresa cansancio.",
+      "notes": "M8 responde a la consulta sobre la baja del add-on, indicando su efecto a fin de mes, y M9 expresa éxito sin mencionar otra acción concreta. Se considera resuelto a nivel conversacional. Las preguntas técnicas de M4 y M6 no están justificadas por la solicitud y «probalo ahora» en M8 no explica qué probar, por lo que la calidad es mala. M1 expresa cansancio.",
       "reviewed": true
     },
     {
@@ -148,12 +148,12 @@
       "resolution": "indeterminado",
       "frustration": "ausente",
       "repetition": "ausente",
-      "assistant_quality": "adecuada",
+      "assistant_quality": "alucinacion_o_mala_respuesta",
       "contact_reasons": [
         "Corregir un monto cobrado incorrectamente",
         "Consultar cómo exportar datos"
       ],
-      "notes": "Exportación respondida en M13. «Ahora entró» (M11) confirma acceso, no el ajuste o la acreditación de M10; ese resultado es incierto.",
+      "notes": "Exportación respondida en M13. «Ahora entró» (M11) confirma acceso, no el ajuste o la acreditación de M10; ese resultado es incierto. Las preguntas técnicas de M4–M9 y cerrar sesión en M10 no atienden el monto cobrado incorrectamente y justifican mala calidad.",
       "reviewed": true
     },
     {
@@ -166,7 +166,7 @@
         "Solicitar un reembolso parcial",
         "Consultar disponibilidad de la aplicación para Android"
       ],
-      "notes": "Android se responde en M11. El asistente aprueba el reembolso proporcional y el usuario manifiesta conformidad en M7 («Joya, ya está»). M1 expresa enojo.",
+      "notes": "La resolución del pedido de reembolso se fundamenta en la confirmación del usuario en M7 («Joya, ya está»), no en una aprobación explícita del asistente. La consulta sobre Android queda respondida en M11. Los marcadores sin reemplazar de M6 («$X» y «Y meses») justifican mala calidad del asistente, independientemente de la resolución conversacional. M1 expresa enojo.",
       "reviewed": true
     },
     {
@@ -184,9 +184,9 @@
       "resolution": "indeterminado",
       "frustration": "presente",
       "repetition": "presente",
-      "assistant_quality": "adecuada",
+      "assistant_quality": "alucinacion_o_mala_respuesta",
       "contact_reasons": ["Cancelar la suscripción de inmediato"],
-      "notes": "M14 pide confirmar la baja, pero M15 solo menciona reiniciar: cancelación incierta. «Te lo mande arriba» (M13) remite al email de M3, solicitado otra vez en M12, y expresa impaciencia.",
+      "notes": "M14 mezcla la confirmación de la baja con cerrar sesión y reintentar. M15 reporta éxito tras reiniciar, pero no permite determinar si la cancelación se completó o sigue pendiente. Las preguntas técnicas de M4, M6 y M8 y la instrucción de M14 no están justificadas por la solicitud de cancelación, por lo que la calidad es mala. «Te lo mande arriba» (M13) remite al email de M3, solicitado otra vez en M12, y expresa impaciencia.",
       "reviewed": true
     },
     {
@@ -194,11 +194,11 @@
       "resolution": "resuelto",
       "frustration": "presente",
       "repetition": "ausente",
-      "assistant_quality": "adecuada",
+      "assistant_quality": "alucinacion_o_mala_respuesta",
       "contact_reasons": [
         "Consultar descuentos para organizaciones sin fines de lucro"
       ],
-      "notes": "M8 responde la pregunta sobre descuentos y M9 acepta. M1 expresa cansancio. No se verifica externamente el porcentaje informado.",
+      "notes": "M8 responde la pregunta sobre descuentos y M9 acepta. Las preguntas técnicas de M4 y M6 no corresponden a una consulta sobre descuentos para ONGs y justifican mala calidad. No se afirma que el porcentaje informado sea falso. M1 expresa cansancio.",
       "reviewed": true
     },
     {
@@ -397,7 +397,7 @@
       "conversation_id": "conv_04253",
       "resolution": "no_resuelto",
       "frustration": "presente",
-      "repetition": "ausente",
+      "repetition": "presente",
       "assistant_quality": "adecuada",
       "contact_reasons": ["Solicitar el reembolso del mes pagado"],
       "notes": "El reembolso no se concreta y el usuario abandona en M6. M4 y M6 expresan frustración. El asistente vuelve a pedir el email, pero el usuario no lo repite ni alude a haberlo enviado.",
@@ -410,7 +410,7 @@
       "repetition": "ausente",
       "assistant_quality": "adecuada",
       "contact_reasons": ["Obtener un comprobante detallado"],
-      "notes": "La ruta de descarga se indica en M4 y el usuario confirma funcionamiento en M5. Reiniciar es compatible con acceder a la descarga.",
+      "notes": "M4 indica una ruta pertinente para descargar el comprobante y M5 confirma funcionamiento. Cerrar sesión es un paso accesorio poco explicado, pero no demuestra por sí solo mala asistencia; se mantiene calidad adecuada.",
       "reviewed": true
     },
     {
@@ -479,12 +479,12 @@
     },
     {
       "conversation_id": "conv_00409",
-      "resolution": "indeterminado",
+      "resolution": "no_resuelto",
       "frustration": "presente",
       "repetition": "ausente",
       "assistant_quality": "alucinacion_o_mala_respuesta",
       "contact_reasons": ["Reclamar un tipo de cambio elevado"],
-      "notes": "«Muy alto» (M1) expresa insatisfacción con el precio. M4 responde sobre cargos duplicados, no sobre tipo de cambio; el agradecimiento no demuestra resolución.",
+      "notes": "El reclamo sobre el tipo de cambio (M1) queda sin responder: M4 habla de cargos duplicados, lo que también justifica mala calidad. «Perfecto, gracias» (M5) no confirma pertinentemente la resolución del pedido original. «Muy alto» (M1) expresa insatisfacción con el precio.",
       "reviewed": true
     },
     {
@@ -506,7 +506,7 @@
       "contact_reasons": [
         "Reducir el almacenamiento ocupado por la aplicación"
       ],
-      "notes": "M4 confirma funcionamiento después de una recomendación pertinente al espacio ocupado. Repetición del asistente en M2–M3, no del usuario.",
+      "notes": "M4 confirma funcionamiento después de una recomendación dirigida al almacenamiento ocupado. La referencia a Enterprise en M2 está poco conectada, pero no hay evidencia suficiente para considerarla inventada ni para marcar mala calidad. Repetición del asistente en M2–M3, no del usuario.",
       "reviewed": true
     },
     {
@@ -584,9 +584,9 @@
       "resolution": "resuelto",
       "frustration": "ausente",
       "repetition": "ausente",
-      "assistant_quality": "adecuada",
+      "assistant_quality": "alucinacion_o_mala_respuesta",
       "contact_reasons": ["Configurar una passkey"],
-      "notes": "M5 confirma éxito. Tras una interrupción el asistente vuelve a pedir datos (M8), pero no hay un nuevo fallo ni repetición del usuario: no se borra la confirmación anterior.",
+      "notes": "M5 confirma éxito, por lo que la resolución se mantiene. Ante el pedido de retomar en M7, M8 vuelve a preguntar el sistema operativo ya informado en M3 sin recuperar el estado resuelto: falla de seguimiento del contexto. No hay repetición del usuario.",
       "reviewed": true
     },
     {
@@ -624,9 +624,9 @@
       "resolution": "no_resuelto",
       "frustration": "indeterminado",
       "repetition": "ausente",
-      "assistant_quality": "adecuada",
+      "assistant_quality": "indeterminado",
       "contact_reasons": ["Resolver el inicio de sesión corporativo SSO"],
-      "notes": "M4 dice que no se arregló. «Vengo probando hace rato» (M1) no permite distinguir esfuerzo previo de impaciencia.",
+      "notes": "M4 dice que no se arregló. M2 afirma categóricamente que el SSO está bien y atribuye el problema a la empresa sin explicar el diagnóstico; resulta sospechoso, pero no hay evidencia para verificarlo o demostrar que sea falso, por lo que la calidad es indeterminada. «Vengo probando hace rato» (M1) no permite distinguir esfuerzo previo de impaciencia.",
       "reviewed": true
     },
     {
@@ -644,9 +644,9 @@
       "resolution": "no_resuelto",
       "frustration": "presente",
       "repetition": "ausente",
-      "assistant_quality": "adecuada",
+      "assistant_quality": "alucinacion_o_mala_respuesta",
       "contact_reasons": ["Obtener tutoriales del producto"],
-      "notes": "Los recursos no se entregan y el caso queda escalado (M6–M7). M1 expresa cansancio.",
+      "notes": "Los tutoriales no se entregan y el caso queda escalado (M6–M7). El asistente pide la dirección sin justificarla (M4), ignora la objeción de M5 y solicita una captura de un error no descrito (M6); esos fallos justifican mala calidad. M1 expresa cansancio.",
       "reviewed": true
     },
     {
@@ -654,11 +654,11 @@
       "resolution": "no_resuelto",
       "frustration": "ausente",
       "repetition": "ausente",
-      "assistant_quality": "alucinacion_o_mala_respuesta",
+      "assistant_quality": "adecuada",
       "contact_reasons": [
         "Desbloquear la cuenta tras varios intentos de acceso"
       ],
-      "notes": "M3–M4 dejan el caso pendiente de otro equipo, pese a la promesa de desbloqueo. Los intentos fallidos de M1 no prueban frustración ni repetición de información.",
+      "notes": "M3–M4 dejan el caso pendiente de otro equipo, pese a la promesa de desbloqueo. Ofrecer el desbloqueo y luego derivar deja un proceso poco explicado, pero no demuestra por sí solo una acción falsa o absurda; se mantiene calidad adecuada. Los intentos fallidos de M1 no prueban frustración ni repetición de información.",
       "reviewed": true
     },
     {
@@ -676,9 +676,9 @@
       "resolution": "no_resuelto",
       "frustration": "ausente",
       "repetition": "ausente",
-      "assistant_quality": "adecuada",
+      "assistant_quality": "alucinacion_o_mala_respuesta",
       "contact_reasons": ["Consultar cómo ocultar información personal"],
-      "notes": "No se proporciona un procedimiento; M4–M5 derivan la consulta. Expresar que no entiende no basta para inferir frustración.",
+      "notes": "No se explica cómo ocultar la información; M4–M5 derivan la consulta. M4 pide una captura de un error que el usuario no describió, tratando la consulta como otro problema: mala calidad. Expresar que no entiende no basta para inferir frustración.",
       "reviewed": true
     },
     {
@@ -696,11 +696,11 @@
       "resolution": "resuelto",
       "frustration": "ausente",
       "repetition": "ausente",
-      "assistant_quality": "adecuada",
+      "assistant_quality": "alucinacion_o_mala_respuesta",
       "contact_reasons": [
         "Resolver una pantalla en blanco al abrir la aplicación"
       ],
-      "notes": "M5 confirma éxito después de las instrucciones de M4. Sin señales emocionales claras ni repetición del usuario.",
+      "notes": "M5 confirma éxito y sostiene resolución conversacional. Ante una aplicación en un teléfono (M1 y M3), M4 indica un atajo de teclado de escritorio sin adaptar ni aclarar el contexto. Los datos contradictorios del dispositivo en M3 provienen del usuario; la mala calidad se fundamenta en la instrucción de M4. Sin señales emocionales claras ni repetición del usuario.",
       "reviewed": true
     },
     {
@@ -725,7 +725,7 @@
       "contact_reasons": [
         "Solicitar un reembolso por insatisfacción con el servicio"
       ],
-      "notes": "M1 expresa insatisfacción («no sirve»). «Ahora entró» (M5) confirma acceso, no la devolución prometida en M4.",
+      "notes": "«No sirve» (M1) expresa insatisfacción con el servicio, no con una respuesta del asistente, y el usuario pregunta por un posible bug. Cerrar sesión en M4 está poco explicado, pero no basta para demostrar mala calidad. «Ahora entró» (M5) confirma acceso, no la devolución prometida en M4, que queda incierta.",
       "reviewed": true
     },
     {
@@ -733,9 +733,9 @@
       "resolution": "no_resuelto",
       "frustration": "presente",
       "repetition": "ausente",
-      "assistant_quality": "adecuada",
+      "assistant_quality": "alucinacion_o_mala_respuesta",
       "contact_reasons": ["Consultar dónde descargar las facturas"],
-      "notes": "M4–M5 derivan el pedido sin indicar la descarga. «No puede ser» (M1) expresa frustración.",
+      "notes": "M4–M5 derivan el pedido sin indicar dónde descargar las facturas. M4 solicita una captura de un error no descrito y desvía la consulta, lo que justifica mala calidad. «No puede ser» (M1) expresa frustración.",
       "reviewed": true
     },
     {
@@ -750,12 +750,12 @@
     },
     {
       "conversation_id": "conv_02775",
-      "resolution": "no_resuelto",
+      "resolution": "resuelto",
       "frustration": "presente",
       "repetition": "ausente",
-      "assistant_quality": "alucinacion_o_mala_respuesta",
+      "assistant_quality": "adecuada",
       "contact_reasons": ["Consultar la garantía de devolución aplicable"],
-      "notes": "M2 da una política genérica, pero el intercambio continúa sin atender la consulta y termina con «Me rindo» (M6). M4 y M6 expresan frustración. No repite información sustantiva.",
+      "notes": "M2 responde la consulta informativa sobre la garantía: 30 días y reembolso total dentro del plazo. El producto no fue informado, por lo que preguntarlo en M3 y M5 no equivale a ignorar un dato disponible. El abandono posterior no invalida por sí solo la respuesta ni demuestra mala calidad. M4 y M6 expresan frustración. No hay repetición del usuario.",
       "reviewed": true
     },
     {
