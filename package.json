@@ -16,6 +16,7 @@
     "zod": "4.5.4"
   },
   "scripts": {
+    "ask": "bun scripts/ask-question.ts",
     "data:import": "bun scripts/import-conversations.ts",
     "search:text": "bun scripts/search-text.ts",
     "search:vector": "bun scripts/search-vector.ts",

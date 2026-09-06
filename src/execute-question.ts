@@ -1,17 +1,86 @@
 import type { Database, SQLQueryBindings } from "bun:sqlite";
-import { interpretQuestion, parseClassificationQuery, queryClassificationsSchema,
-  type ClassificationQuery, type QuestionPlan } from "./interpret-question";
 import { zodResponsesFunction } from "openai/helpers/zod";
-import { formatAnswer } from "./format-answer";
+import { z } from "zod";
 
 import { openDatabase, defaultDatabasePath } from "./database";
 
-type SupportedPlan = ClassificationQuery;
-type FilterGroup = SupportedPlan["population"];
+const filterSchema = z.discriminatedUnion("field", [
+  z.strictObject({
+    field: z.literal("resolution"),
+    value: z.enum([
+      "resuelto",
+      "parcialmente_resuelto",
+      "no_resuelto",
+      "indeterminado",
+    ]),
+  }),
+  z.strictObject({
+    field: z.literal("repetition"),
+    value: z.enum(["presente", "ausente", "indeterminado"]),
+  }),
+  z.strictObject({
+    field: z.literal("assistant_quality"),
+    value: z.enum([
+      "adecuada",
+      "alucinacion_o_mala_respuesta",
+      "indeterminado",
+    ]),
+  }),
+]);
+
+// AND/OR combina los filtros dentro de cada conjunto. Un conjunto vacío incluye todo.
+const filterGroupSchema = z.strictObject({
+  operator: z.enum(["and", "or"]),
+  filters: z.array(filterSchema).max(20),
+});
+
+export const queryClassificationsSchema = z.strictObject({
+  aggregation: z.enum(["count", "percentage", "ranking"]),
+  // null no restringe; [] representa un conjunto vacío.
+  conversationIds: z.array(z.string().trim().min(1).max(200)).max(1000).nullable(),
+  // Universo del análisis; para porcentajes, es el denominador.
+  population: filterGroupSchema,
+  // Condición adicional que selecciona el numerador o los casos a contar.
+  matching: filterGroupSchema,
+  dateRange: z.strictObject({
+    from: z.string().date().nullable(),
+    toExclusive: z.string().date().nullable(),
+  }),
+  ranking: z
+    .object({
+      field: z.enum([
+        "resolution",
+        "repetition",
+        "assistant_quality",
+      ]),
+      limit: z.number().int().min(1).max(20),
+    })
+    .nullable(),
+  examples: z.number().int().min(0).max(10),
+});
+
+export type ClassificationQuery = z.infer<typeof queryClassificationsSchema>;
+
+// Valida argumentos de la herramienta antes de construir SQL.
+export function parseClassificationQuery(input: unknown): ClassificationQuery {
+  // En llamadas locales puede omitirse; el contrato estricto del modelo usa null.
+  const query = queryClassificationsSchema.extend({
+    conversationIds: queryClassificationsSchema.shape.conversationIds.default(null),
+  }).parse(input);
+  if ((query.aggregation === "ranking") !== (query.ranking !== null)) {
+    throw new Error("La configuración de ranking no coincide con la agregación.");
+  }
+  const { from, toExclusive } = query.dateRange;
+  if (from && toExclusive && from >= toExclusive) {
+    throw new Error("El intervalo de fechas debe tener inicio anterior al fin.");
+  }
+  return query;
+}
+
+type FilterGroup = ClassificationQuery["population"];
 type Filter = FilterGroup["filters"][number];
 
-export type QuestionQueryResult =
-  | { kind: "unsupported"; reason: string }
+export type ClassificationQueryResult =
   | {
       kind: "count";
       count: number;
@@ -26,7 +95,7 @@ export type QuestionQueryResult =
     }
   | {
       kind: "ranking";
-      field: NonNullable<SupportedPlan["ranking"]>["field"];
+      field: NonNullable<ClassificationQuery["ranking"]>["field"];
       items: { value: string; count: number }[];
       examples?: string[];
     };
@@ -60,24 +129,12 @@ Para contenido, usá searchConversations cuando esté disponible. No omitas una 
 que esta herramienta no puede representar para simular que respondiste la pregunta.`,
 });
 
-export function executeQuestionPlan(
-  plan: QuestionPlan,
-  databasePath = defaultDatabasePath,
-): QuestionQueryResult {
-  if (plan.kind === "unsupported") {
-    return { kind: "unsupported", reason: plan.reason };
-  }
-
-  const { kind, ...query } = plan;
-  return queryClassifications(query, databasePath);
-}
-
 // Acepta argumentos sin confiar en su origen (por ejemplo, JSON enviado por el modelo).
 // La ruta de la base es configuración interna y no forma parte de la herramienta.
 export function queryClassifications(
   input: unknown,
   databasePath = defaultDatabasePath,
-): Exclude<QuestionQueryResult, { kind: "unsupported" }> {
+): ClassificationQueryResult {
   const plan = parseClassificationQuery(input);
 
   const db = openDatabase(databasePath, "readonly");
@@ -145,18 +202,8 @@ export function queryClassifications(
   }
 }
 
-export async function answerQuestion(
-  question: string,
-  databasePath = defaultDatabasePath,
-) {
-  const plan = await interpretQuestion(question);
-  const result = executeQuestionPlan(plan, databasePath);
-  const answer = await formatAnswer(question, plan, result);
-  return { plan, result, answer };
-}
-
 function whereClause(
-  plan: SupportedPlan,
+  plan: ClassificationQuery,
   params: SQLQueryBindings[],
   includeMatching: boolean,
 ) {
@@ -189,7 +236,7 @@ function sqlFilter(filter: Filter, params: SQLQueryBindings[]) {
 }
 
 function sqlDateRange(
-  dateRange: SupportedPlan["dateRange"],
+  dateRange: ClassificationQuery["dateRange"],
   params: SQLQueryBindings[],
 ) {
   const parts: string[] = [];
@@ -206,7 +253,7 @@ function sqlDateRange(
   return parts.length ? parts.join(" AND ") : "1";
 }
 
-function loadExamples(db: Database, plan: SupportedPlan): string[] {
+function loadExamples(db: Database, plan: ClassificationQuery): string[] {
   if (plan.examples === 0) return [];
   const params: SQLQueryBindings[] = [];
   const rows = db

@@ -5,8 +5,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { saveClassifiedBatch } from "../src/save-classified-batch";
-import { executeQuestionPlan, queryClassifications, queryClassificationsTool } from "../src/execute-question";
-import type { QuestionPlan } from "../src/interpret-question";
+import { queryClassifications, queryClassificationsTool, type ClassificationQuery } from "../src/execute-question";
 import type { Conversation, ConversationLabels } from "../src/classify-conversation";
 
 const dirs: string[] = [];
@@ -87,9 +86,8 @@ function labels(
   };
 }
 
-function supported(overrides: Partial<Extract<QuestionPlan, { kind: "supported" }>> = {}): QuestionPlan {
+function classificationQuery(overrides: Partial<ClassificationQuery> = {}): ClassificationQuery {
   return {
-    kind: "supported",
     aggregation: "count",
     conversationIds: null,
     population: { operator: "and", filters: [] },
@@ -101,21 +99,9 @@ function supported(overrides: Partial<Extract<QuestionPlan, { kind: "supported" 
   };
 }
 
-test("devuelve unsupported sin consultar", () => {
-  expect(
-    executeQuestionPlan({
-      kind: "unsupported",
-      reason: "No hay datos de frustración.",
-    }),
-  ).toEqual({
-    kind: "unsupported",
-    reason: "No hay datos de frustración.",
-  });
-});
-
 test("cuenta conversaciones clasificadas", () => {
   const databasePath = seed();
-  const result = executeQuestionPlan(supported(), databasePath);
+  const result = queryClassifications(classificationQuery(), databasePath);
   expect(result).toEqual({
     kind: "count",
     count: 3,
@@ -124,8 +110,8 @@ test("cuenta conversaciones clasificadas", () => {
 
 test("filtra con AND y OR", () => {
   const databasePath = seed();
-  const result = executeQuestionPlan(
-    supported({
+  const result = queryClassifications(
+    classificationQuery({
       matching: {
         operator: "or",
         filters: [
@@ -144,8 +130,8 @@ test("filtra con AND y OR", () => {
 
 test("el porcentaje usa population como denominador y matching como numerador", () => {
   const databasePath = seed();
-  const result = executeQuestionPlan(
-    supported({
+  const result = queryClassifications(
+    classificationQuery({
       aggregation: "percentage",
       population: {
         operator: "and",
@@ -168,8 +154,8 @@ test("el porcentaje usa population como denominador y matching como numerador", 
 
 test("dateRange filtra por metadata.timestamp", () => {
   const databasePath = seed();
-  const result = executeQuestionPlan(
-    supported({
+  const result = queryClassifications(
+    classificationQuery({
       dateRange: { from: "2024-01-01", toExclusive: "2024-02-01" },
     }),
     databasePath,
@@ -179,8 +165,8 @@ test("dateRange filtra por metadata.timestamp", () => {
 
 test("ranking agrupa y limita", () => {
   const databasePath = seed();
-  const result = executeQuestionPlan(
-    supported({
+  const result = queryClassifications(
+    classificationQuery({
       aggregation: "ranking",
       ranking: { field: "resolution", limit: 2 },
     }),
@@ -198,8 +184,8 @@ test("ranking agrupa y limita", () => {
 
 test("devuelve la cantidad pedida de ejemplos del conjunto filtrado", () => {
   const databasePath = seed();
-  const result = executeQuestionPlan(
-    supported({
+  const result = queryClassifications(
+    classificationQuery({
       matching: {
         operator: "and",
         filters: [{ field: "resolution", value: "no_resuelto" }],
@@ -215,7 +201,7 @@ test("devuelve la cantidad pedida de ejemplos del conjunto filtrado", () => {
 
 test("queryClassifications acepta argumentos de herramienta sin kind y reutiliza los conteos", () => {
   const databasePath = seed();
-  const { kind, ...query } = supported({ examples: 2 }) as Extract<QuestionPlan, { kind: "supported" }>;
+  const query = classificationQuery({ examples: 2 });
   expect(queryClassifications(JSON.parse(JSON.stringify(query)), databasePath))
     .toEqual({ kind: "count", count: 3, examples: ["a", "b"] });
   expect(queryClassificationsTool.name).toBe("queryClassifications");
@@ -225,7 +211,7 @@ test("queryClassifications acepta argumentos de herramienta sin kind y reutiliza
 });
 
 test("rechaza parámetros inválidos y condiciones no soportadas antes de abrir SQLite", () => {
-  const { kind, ...query } = supported() as Extract<QuestionPlan, { kind: "supported" }>;
+  const query = classificationQuery();
   const invalid = [
     { ...query, sql: "DROP TABLE classifications" },
     { ...query, databasePath: "otra.sqlite" },
@@ -249,20 +235,20 @@ test("rechaza parámetros inválidos y condiciones no soportadas antes de abrir 
 
 test("IDs restringen conteos y ejemplos, sin duplicados ni IDs ajenos al conjunto clasificado", () => {
   const databasePath = seed();
-  const plan = supported({ conversationIds: ["a", "a", "b", "d", "inexistente", "a') OR 1=1 --"],
+  const plan = classificationQuery({ conversationIds: ["a", "a", "b", "d", "inexistente", "a') OR 1=1 --"],
     matching: { operator: "and", filters: [{ field: "resolution", value: "no_resuelto" }] }, examples: 10 });
-  expect(executeQuestionPlan(plan, databasePath)).toEqual({ kind: "count", count: 1, examples: ["a"] });
-  expect(executeQuestionPlan(supported({ conversationIds: ["c"],
+  expect(queryClassifications(plan, databasePath)).toEqual({ kind: "count", count: 1, examples: ["a"] });
+  expect(queryClassifications(classificationQuery({ conversationIds: ["c"],
     dateRange: { from: "2024-01-01", toExclusive: "2024-02-01" } }), databasePath))
     .toEqual({ kind: "count", count: 0 });
 });
 
 test("IDs restringen también el denominador de porcentajes y los rankings", () => {
   const databasePath = seed();
-  expect(executeQuestionPlan(supported({ conversationIds: ["a", "b"], aggregation: "percentage",
+  expect(queryClassifications(classificationQuery({ conversationIds: ["a", "b"], aggregation: "percentage",
     matching: { operator: "and", filters: [{ field: "resolution", value: "no_resuelto" }] },
   }), databasePath)).toEqual({ kind: "percentage", numerator: 1, denominator: 2, percentage: 50 });
-  expect(executeQuestionPlan(supported({ conversationIds: ["b"], aggregation: "ranking",
+  expect(queryClassifications(classificationQuery({ conversationIds: ["b"], aggregation: "ranking",
     ranking: { field: "resolution", limit: 5 }, examples: 10,
   }), databasePath)).toEqual({ kind: "ranking", field: "resolution",
     items: [{ value: "resuelto", count: 1 }], examples: ["b"] });
@@ -270,14 +256,14 @@ test("IDs restringen también el denominador de porcentajes y los rankings", () 
 
 test("IDs vacíos nunca amplían la consulta; null u omisión conservan el alcance original", () => {
   const databasePath = seed();
-  expect(executeQuestionPlan(supported({ conversationIds: [], examples: 10 }), databasePath))
+  expect(queryClassifications(classificationQuery({ conversationIds: [], examples: 10 }), databasePath))
     .toEqual({ kind: "count", count: 0, examples: [] });
-  expect(executeQuestionPlan(supported({ conversationIds: [], aggregation: "percentage" }), databasePath))
+  expect(queryClassifications(classificationQuery({ conversationIds: [], aggregation: "percentage" }), databasePath))
     .toEqual({ kind: "percentage", numerator: 0, denominator: 0, percentage: null });
-  expect(executeQuestionPlan(supported({ conversationIds: [], aggregation: "ranking",
+  expect(queryClassifications(classificationQuery({ conversationIds: [], aggregation: "ranking",
     ranking: { field: "resolution", limit: 5 } }), databasePath))
     .toEqual({ kind: "ranking", field: "resolution", items: [] });
-  const { kind, conversationIds, ...query } = supported() as Extract<QuestionPlan, { kind: "supported" }>;
+  const { conversationIds, ...query } = classificationQuery();
   expect(queryClassifications(query, databasePath)).toEqual({ kind: "count", count: 3 });
   expect(queryClassifications({ ...query, conversationIds: null }, databasePath)).toEqual({ kind: "count", count: 3 });
   for (const ids of [[""], [" "], [123], "a", Array(1001).fill("a")]) {

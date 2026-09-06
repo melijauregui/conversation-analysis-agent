@@ -76,7 +76,7 @@ The database and its WAL files are local generated files excluded from Git.
 
 `src/execute-question.ts` exports `queryClassificationsTool`, a strict Responses
 function definition, and `queryClassifications(input, databasePath?)`, its executor.
-The shared Zod schema is in `src/interpret-question.ts`. The executor validates
+The Zod schema and validation live in the same module. The executor validates
 untrusted arguments before opening SQLite; it accepts no SQL or database path from
 the model. Unsupported fields and extra properties are rejected, not silently ignored.
 
@@ -108,9 +108,8 @@ Duplicates count once; unknown or unclassified IDs do not count. This allows fil
 IDs retrieved by `searchConversations`, but results on those candidates are not global
 totals. Example IDs remain capped at 10.
 
-The existing question interpreter delegates execution to this same function.
-Registering both tools and implementing the model's tool-selection loop is the next
-step; this change only prepares the classification tool and does not call the model.
+The orchestrator registers this tool alongside hybrid search. `ask` uses the
+orchestration loop to choose tools and produce the final answer.
 
 ## Search storage
 
@@ -189,8 +188,7 @@ for vector-only retrieval. The executor rejects extra arguments before searching
 Database path, embedding model/dimensions and candidate limit are application configuration,
 not model arguments. The existing CLI and direct function keep their optional defaults.
 The tool returns candidates with original messages and explicitly limited coverage;
-the model must verify relevance. Both tool definitions are ready; the orchestration
-loop that registers and executes them is still pending.
+the model must verify relevance. `orchestrate-question.ts` registers and executes both tools.
 
 ```bash
 bun run search:hybrid "problemas para configurar o usar passkeys" 5 passkey passkeys
@@ -225,9 +223,39 @@ standalone `search:text` command keeps its existing all-words (AND) behavior.
 The result includes both input fields. An empty ranking contributes nothing; an API or
 database error is propagated, rather than silently reporting a complete hybrid search.
 
-This is the payload for a future model tool, not a final analytical answer. The model
-will need to treat dataset messages as untrusted data, verify which candidates answer
-the question and cite their conversation IDs and message indexes. It is not yet wired
-to the question interpreter. Filters, semantic verification and session memory remain
-separate steps. Originals are returned without truncation; keep `limit` small when
-assembling model context.
+The orchestrator receives this payload and is instructed to check relevance and cite
+conversation IDs and message indexes, treating retrieved messages as untrusted data.
+This semantic verification is performed by the LLM, not guaranteed by the retrieval
+code. Originals are returned without truncation; keep `limit` small when assembling
+model context. Cross-question session memory and persisted new analyses are not implemented.
+
+
+## Ask with the orchestrator
+
+```bash
+bun run ask "¿Cuántas conversaciones quedaron resueltas?"
+bun run ask "Mostrame conversaciones sobre passkeys que estén resueltas"
+```
+
+`src/orchestrate-question.ts` contains the prompt and bounded Responses tool loop.
+The model receives the question, current UTC date and both tool definitions with
+`tool_choice: auto`. It can request a clarification or select a tool and arguments.
+The application validates and executes the call, returns its result using `call_id`,
+and sends the complete response history (including reasoning items) for the next
+model decision. Calls run sequentially so later calls can use earlier results.
+
+The default budget is six tool calls, followed by a final response with tools disabled.
+Errors stop the request; they are not converted into empty results. The CLI prints
+calls, arguments, results and the final answer for inspection. `OPENAI_MODEL` selects
+the orchestrator model; embedding configuration remains independent. Requests use
+`store: false`. No database migration or analysis writes are performed.
+
+For content plus classification, the model can search, select relevant candidate IDs,
+then query their classifications using `conversationIds`. This is limited to retrieved
+candidates, not an exhaustive topic count. The prompt requires evidence for content
+claims and preserves SQL counts and percentage denominators. These are model
+instructions, not a deterministic verification of every claim in the final prose.
+
+Tests use actual temporary SQLite/vec indexes and simulated model and embedding
+responses to verify routing, chained calls, error handling and the call budget.
+They do not measure how reliably a live model chooses tools or verifies relevance.
