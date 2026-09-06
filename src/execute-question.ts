@@ -1,11 +1,8 @@
-import { Database, type SQLQueryBindings } from "bun:sqlite";
+import type { Database, SQLQueryBindings } from "bun:sqlite";
 import { interpretQuestion, type QuestionPlan } from "./interpret-question";
 import { formatAnswer } from "./format-answer";
 
-const defaultDatabasePath = new URL(
-  "../data/conversations.sqlite",
-  import.meta.url,
-).pathname;
+import { openDatabase, defaultDatabasePath } from "./database";
 
 type SupportedPlan = Extract<QuestionPlan, { kind: "supported" }>;
 type FilterGroup = SupportedPlan["population"];
@@ -45,7 +42,7 @@ export function executeQuestionPlan(
     return { kind: "unsupported", reason: plan.reason };
   }
 
-  const db = new Database(databasePath, { readonly: true });
+  const db = openDatabase(databasePath, "readonly");
   try {
     const examples = plan.examples > 0 ? loadExamples(db, plan) : undefined;
 

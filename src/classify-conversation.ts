@@ -1,7 +1,17 @@
 import OpenAI from "openai";
 import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
-import { saveClassifiedBatch, getCachedConversationIds } from "./save-classified-batch";
+import {
+  saveClassifiedBatch,
+  getCachedConversationIds,
+} from "./save-classified-batch";
+import {
+  createEmbeddingClient,
+  embedClassifiedBatch,
+  getEmbeddingConfiguration,
+  type EmbeddingOptions,
+} from "./embed-documents";
+import { defaultDatabasePath, openDatabase } from "./database";
 
 export type Conversation = {
   id: string;
@@ -44,6 +54,11 @@ export type ClassificationError = {
 export type ClassifyBatchOptions = {
   batchSize?: number;
   concurrency?: number;
+  databasePath?: string;
+  embeddings?: EmbeddingOptions;
+  classifyBatch?: (
+    batch: Conversation[],
+  ) => Promise<{ classifications: ConversationLabels[]; model: string }>;
 };
 
 export type ConversationClassifier = {
@@ -53,11 +68,14 @@ export type ConversationClassifier = {
   ): Promise<ConversationLabels[]>;
 };
 
-const defaultBatchSize = 10;
+const defaultBatchSize = 50;
 const defaultConcurrency = 15;
 const promptCacheKey = "conversation-classification-v1";
 const reasoning = { effort: "low" } as const;
-const outputFormat = zodTextFormat(batchLabelsSchema, "conversation_labels_batch");
+const outputFormat = zodTextFormat(
+  batchLabelsSchema,
+  "conversation_labels_batch",
+);
 
 async function loadSystemPrompt() {
   const document = await Bun.file(
@@ -180,6 +198,12 @@ async function classifyBatch(
   };
 }
 
+function classifyWithOpenAI(model: string, instructions: string) {
+  const client = new OpenAI({ timeout: 180_000, maxRetries: 0 });
+  return (batch: Conversation[]) =>
+    classifyBatch(client, model, instructions, batch);
+}
+
 export async function classifyConversations(
   conversations: Conversation[],
   options?: ClassifyBatchOptions,
@@ -195,15 +219,37 @@ export async function classifyConversations(
   if (!Number.isInteger(concurrency) || concurrency < 1) {
     throw new Error("concurrency debe ser un entero positivo.");
   }
-  if (new Set(conversations.map((conversation) => conversation.id)).size !== conversations.length) {
+  if (
+    new Set(conversations.map((conversation) => conversation.id)).size !==
+    conversations.length
+  ) {
     throw new Error("Hay IDs de conversación duplicados en la entrada.");
   }
-  const analysis = { prompt: instructions, outputSchema: outputFormat, model, reasoning };
-  const cachedIds = getCachedConversationIds(conversations, analysis);
-  const pending = conversations.filter((conversation) => !cachedIds.has(conversation.id));
-  console.log(`Reutilizadas: ${cachedIds.size} | Por clasificar: ${pending.length}`);
+  const analysis = {
+    prompt: instructions,
+    outputSchema: outputFormat,
+    model,
+    reasoning,
+  };
+  const databasePath = options?.databasePath ?? defaultDatabasePath;
+  const embeddingConfig = getEmbeddingConfiguration(options?.embeddings ?? {});
+  openDatabase(databasePath).close();
+  const cachedIds = getCachedConversationIds(
+    conversations,
+    analysis,
+    embeddingConfig,
+    databasePath,
+  );
+  const pending = conversations.filter(
+    (conversation) => !cachedIds.has(conversation.id),
+  );
+  console.log(
+    `Reutilizadas: ${cachedIds.size} | Por clasificar: ${pending.length}`,
+  );
   if (!pending.length) return { successes: [], errors: [] };
-  const client = new OpenAI({ timeout: 180_000, maxRetries: 0 });
+  const classify =
+    options?.classifyBatch ?? classifyWithOpenAI(model, instructions);
+  const embedBatch = options?.embeddings?.embedBatch ?? createEmbeddingClient();
   const batches = chunk(pending, batchSize);
 
   const successes: ConversationLabels[] = [];
@@ -215,23 +261,40 @@ export async function classifyConversations(
     const settled = await Promise.allSettled(
       elementsToProcess.map(async (batch, index) => {
         const start = performance.now();
-        const result = await classifyBatch(
-          client,
-          model,
-          instructions,
-          batch,
-        );
+        const result = await classify(batch);
         const classificationMs = performance.now() - start;
+        const embeddingStart = performance.now();
+        const embeddings = await embedClassifiedBatch(
+          batch,
+          result.classifications,
+          {
+            ...options?.embeddings,
+            ...embeddingConfig,
+            embedBatch,
+          },
+        );
+        const embeddingMs = performance.now() - embeddingStart;
         const saveStart = performance.now();
-        saveClassifiedBatch(batch, result.classifications, {
-          model: result.model,
-          configuration: { requested_model: model, reasoning, batch_size: batch.length,
-            configured_batch_size: batchSize, concurrency },
-          analysis,
-        });
+        saveClassifiedBatch(
+          batch,
+          result.classifications,
+          {
+            model: result.model,
+            configuration: {
+              requested_model: model,
+              reasoning,
+              batch_size: batch.length,
+              configured_batch_size: batchSize,
+              concurrency,
+            },
+            analysis,
+          },
+          embeddings,
+          databasePath,
+        );
         const saveMs = performance.now() - saveStart;
         console.log(
-          `Lote ${i + index + 1}/${batches.length} (${batch.length} conversaciones): clasificación ${(classificationMs / 1000).toFixed(2)} s | guardado ${saveMs.toFixed(2)} ms`,
+          `Lote ${i + index + 1}/${batches.length} (${batch.length} conversaciones): clasificación ${(classificationMs / 1000).toFixed(2)} s | embeddings ${(embeddingMs / 1000).toFixed(2)} s | guardado ${saveMs.toFixed(2)} ms`,
         );
         return result.classifications;
       }),

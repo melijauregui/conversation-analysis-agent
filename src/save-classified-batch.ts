@@ -1,9 +1,12 @@
-import { Database } from "bun:sqlite";
-import { existsSync, mkdirSync } from "node:fs";
-import { dirname } from "node:path";
+import { openDatabase, defaultDatabasePath } from "./database";
+import { existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import type { Conversation, ConversationLabels } from "./classify-conversation";
-import { createSearchDocumentsTable, saveSearchDocuments } from "./search-documents";
+import { buildEmbeddingPayload, saveSearchDocuments } from "./search-documents";
+import type {
+  DocumentEmbedding,
+  EmbeddingConfiguration,
+} from "./embed-documents";
 
 export type ClassificationContext = {
   model: string;
@@ -16,31 +19,58 @@ export type ClassificationContext = {
   };
 };
 
-export function getAnalysisHash(conversation: Conversation, analysis: ClassificationContext["analysis"]) {
-  return createHash("sha256").update(JSON.stringify({
-    messages: conversation.messages.map(({ role, content }) => ({ role, content })),
-    prompt: analysis.prompt,
-    outputSchema: analysis.outputSchema,
-    model: analysis.model,
-    reasoning: { effort: analysis.reasoning.effort },
-  })).digest("hex");
+export function getAnalysisHash(
+  conversation: Conversation,
+  analysis: ClassificationContext["analysis"],
+) {
+  return createHash("sha256")
+    .update(
+      JSON.stringify({
+        messages: conversation.messages.map(({ role, content }) => ({
+          role,
+          content,
+        })),
+        prompt: analysis.prompt,
+        outputSchema: analysis.outputSchema,
+        model: analysis.model,
+        reasoning: { effort: analysis.reasoning.effort },
+      }),
+    )
+    .digest("hex");
 }
 
 export function getCachedConversationIds(
   conversations: Conversation[],
   analysis: ClassificationContext["analysis"],
-  databasePath = new URL("../data/conversations.sqlite", import.meta.url).pathname,
+  embeddingConfig: EmbeddingConfiguration,
+  databasePath = defaultDatabasePath,
 ) {
   const cached = new Set<string>();
   if (!existsSync(databasePath)) return cached;
-  const db = new Database(databasePath, { readonly: true });
+  const db = openDatabase(databasePath, "readonly");
   try {
-    const find = db.query<{ analysis_hash: string }, [string, string]>(`
+    const find = db.query<
+      { analysis_hash: string },
+      [string, string, string, number]
+    >(`
       SELECT analysis_hash
       FROM classifications WHERE conversation_id = ? AND analysis_hash = ?
+      AND 3 = (
+        SELECT COUNT(*) FROM search_documents d
+        JOIN document_embeddings e ON e.conversation_id = d.conversation_id AND e.type = d.type
+        WHERE d.conversation_id = classifications.conversation_id
+          AND e.content_hash = d.content_hash AND e.model = ? AND e.dimensions = ?
+      )
     `);
     for (const conversation of conversations) {
-      if (find.get(conversation.id, getAnalysisHash(conversation, analysis))) {
+      if (
+        find.get(
+          conversation.id,
+          getAnalysisHash(conversation, analysis),
+          embeddingConfig.model,
+          embeddingConfig.dimensions,
+        )
+      ) {
         cached.add(conversation.id);
       }
     }
@@ -54,45 +84,19 @@ export function saveClassifiedBatch(
   conversations: Conversation[],
   classifications: ConversationLabels[],
   context: ClassificationContext,
-  databasePath = new URL("../data/conversations.sqlite", import.meta.url).pathname,
+  embeddings: DocumentEmbedding[],
+  databasePath = defaultDatabasePath,
 ) {
-  mkdirSync(dirname(databasePath), { recursive: true });
-  const db = new Database(databasePath, { create: true, strict: true });
+  validateBatch(conversations, classifications, embeddings);
+  const db = openDatabase(databasePath);
   try {
-    db.run("PRAGMA busy_timeout = 5000");
-    db.run("PRAGMA journal_mode = WAL");
-    db.run("PRAGMA foreign_keys = ON");
-    db.run(`
-      CREATE TABLE IF NOT EXISTS conversations (
-        id TEXT PRIMARY KEY NOT NULL,
-        metadata_json TEXT NOT NULL
-      );
-      CREATE TABLE IF NOT EXISTS messages (
-        conversation_id TEXT NOT NULL REFERENCES conversations(id),
-        message_index INTEGER NOT NULL CHECK (message_index >= 1),
-        role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
-        content TEXT NOT NULL,
-        PRIMARY KEY (conversation_id, message_index)
-      );
-      CREATE TABLE IF NOT EXISTS classifications (
-        conversation_id TEXT PRIMARY KEY NOT NULL REFERENCES conversations(id),
-        resolution TEXT NOT NULL,
-        repetition TEXT NOT NULL,
-        assistant_quality TEXT NOT NULL,
-        contact_reasons_json TEXT NOT NULL,
-        notes TEXT NOT NULL,
-        model TEXT NOT NULL,
-        configuration_json TEXT NOT NULL,
-        analysis_hash TEXT NOT NULL,
-        classified_at TEXT NOT NULL
-      );
-    `);
-    createSearchDocumentsTable(db);
     const saveConversation = db.prepare(`
       INSERT INTO conversations (id, metadata_json) VALUES (?, ?)
       ON CONFLICT (id) DO UPDATE SET metadata_json = excluded.metadata_json
     `);
-    const clearMessages = db.prepare("DELETE FROM messages WHERE conversation_id = ?");
+    const clearMessages = db.prepare(
+      "DELETE FROM messages WHERE conversation_id = ?",
+    );
     const saveMessage = db.prepare("INSERT INTO messages VALUES (?, ?, ?, ?)");
     const saveLabels = db.prepare(`
       INSERT INTO classifications (
@@ -111,27 +115,132 @@ export function saveClassifiedBatch(
         classified_at = excluded.classified_at
     `);
 
-    // Solo escritura local: la llamada al modelo ya terminó.
+    const saveEmbedding = db.prepare(`
+      INSERT INTO document_embeddings
+        (conversation_id, type, content_hash, model, dimensions, vector_json, embedded_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT (conversation_id, type, model, dimensions) DO UPDATE SET
+        content_hash = excluded.content_hash, vector_json = excluded.vector_json,
+        embedded_at = excluded.embedded_at
+    `);
+
+    // Clasificación y embeddings ya están completos en memoria. Un único commit por lote.
     db.transaction(() => {
       for (const conversation of conversations) {
-        saveConversation.run(conversation.id, JSON.stringify(conversation.metadata ?? {}));
+        saveConversation.run(
+          conversation.id,
+          JSON.stringify(conversation.metadata ?? {}),
+        );
         clearMessages.run(conversation.id);
         conversation.messages.forEach((message, index) => {
-          saveMessage.run(conversation.id, index + 1, message.role, message.content);
+          saveMessage.run(
+            conversation.id,
+            index + 1,
+            message.role,
+            message.content,
+          );
         });
       }
       for (const labels of classifications) {
-        const conversation = conversations.find((item) => item.id === labels.conversation_id);
-        if (!conversation) throw new Error(`No se encontró la conversación ${labels.conversation_id}.`);
+        const conversation = conversations.find(
+          (item) => item.id === labels.conversation_id,
+        );
+        if (!conversation)
+          throw new Error(
+            `No se encontró la conversación ${labels.conversation_id}.`,
+          );
         // Solo texto y roles, en orden: los metadatos no se envían al modelo.
         const analysisHash = getAnalysisHash(conversation, context.analysis);
-        saveLabels.run(labels.conversation_id, labels.resolution, labels.repetition,
-          labels.assistant_quality, JSON.stringify(labels.contact_reasons), labels.notes,
-          context.model, JSON.stringify(context.configuration), analysisHash, new Date().toISOString());
+        saveLabels.run(
+          labels.conversation_id,
+          labels.resolution,
+          labels.repetition,
+          labels.assistant_quality,
+          JSON.stringify(labels.contact_reasons),
+          labels.notes,
+          context.model,
+          JSON.stringify(context.configuration),
+          analysisHash,
+          new Date().toISOString(),
+        );
         saveSearchDocuments(db, conversation, labels);
+      }
+      for (const embedding of embeddings) {
+        saveEmbedding.run(
+          embedding.conversation_id,
+          embedding.type,
+          embedding.content_hash,
+          embedding.model,
+          embedding.dimensions,
+          embedding.vector_json,
+          new Date().toISOString(),
+        );
       }
     }).immediate();
   } finally {
     db.close();
+  }
+}
+
+function validateBatch(
+  conversations: Conversation[],
+  labels: ConversationLabels[],
+  embeddings: DocumentEmbedding[],
+) {
+  const byId = new Map(labels.map((item) => [item.conversation_id, item]));
+  if (
+    new Set(conversations.map(({ id }) => id)).size !== conversations.length ||
+    byId.size !== conversations.length ||
+    labels.length !== conversations.length ||
+    embeddings.length !== conversations.length * 3
+  ) {
+    throw new Error(
+      "El lote debe contener una clasificación y tres embeddings por conversación.",
+    );
+  }
+  const byDocument = new Map(
+    embeddings.map((item) => [
+      JSON.stringify([item.conversation_id, item.type]),
+      item,
+    ]),
+  );
+  const configuration = embeddings[0];
+  for (const conversation of conversations) {
+    const classification = byId.get(conversation.id);
+    if (!classification)
+      throw new Error(`Falta la clasificación de ${conversation.id}.`);
+    for (const document of buildEmbeddingPayload(
+      conversation,
+      classification,
+    )) {
+      const embedding = byDocument.get(
+        JSON.stringify([conversation.id, document.type]),
+      );
+      const hash = createHash("sha256")
+        .update(document.text, "utf8")
+        .digest("hex");
+      if (
+        !embedding ||
+        embedding.content_hash !== hash ||
+        embedding.model !== configuration?.model ||
+        embedding.dimensions !== configuration?.dimensions ||
+        !Number.isInteger(embedding.dimensions) ||
+        embedding.dimensions < 1
+      ) {
+        throw new Error(
+          `Embedding faltante o incompatible: ${conversation.id}/${document.type}.`,
+        );
+      }
+      const vector = JSON.parse(embedding.vector_json);
+      if (
+        !Array.isArray(vector) ||
+        vector.length !== embedding.dimensions ||
+        !vector.every(Number.isFinite)
+      ) {
+        throw new Error(
+          `Vector inválido: ${conversation.id}/${document.type}.`,
+        );
+      }
+    }
   }
 }

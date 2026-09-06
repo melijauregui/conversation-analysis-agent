@@ -1,3 +1,5 @@
+import { fixtureEmbeddings } from "./embedding-fixture";
+import { openDatabase } from "../src/database";
 import { afterEach, expect, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -45,7 +47,7 @@ function seed() {
       contact_reasons: ["Cambiar la fecha de facturación"],
     }),
   ];
-  saveClassifiedBatch(conversations, classifications, {
+  saveClassifiedBatch(conversations.slice(0, 3), classifications, {
     model: "test",
     configuration: {},
     analysis: {
@@ -54,7 +56,11 @@ function seed() {
       model: "test",
       reasoning: { effort: "low" },
     },
-  }, databasePath);
+  }, fixtureEmbeddings(conversations.slice(0, 3), classifications), databasePath);
+  const db = openDatabase(databasePath, "existing");
+  try {
+    db.query("INSERT INTO conversations (id, metadata_json) VALUES (?, ?)").run("d", JSON.stringify(conversations[3]!.metadata));
+  } finally { db.close(); }
   return databasePath;
 }
 

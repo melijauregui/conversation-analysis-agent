@@ -1,4 +1,4 @@
-import { Database } from "bun:sqlite";
+import { openDatabase } from "../src/database";
 import type { ConversationLabels } from "../src/classify-conversation";
 
 type ReferenceLabels = ConversationLabels & { reviewed: boolean };
@@ -26,10 +26,7 @@ function percentage(count: number, total: number) {
 const dataset: { labels: ReferenceLabels[] } = await Bun.file(
   new URL("../data/development-labels.json", import.meta.url),
 ).json();
-const db = new Database(
-  new URL("../data/conversations.sqlite", import.meta.url).pathname,
-  { readonly: true },
-);
+const db = openDatabase(undefined, "readonly");
 
 try {
   const findPrediction = db.query<StoredLabels, [string]>(
