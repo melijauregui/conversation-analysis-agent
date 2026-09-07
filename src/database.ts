@@ -103,6 +103,21 @@ function initializeTables(db: Database) {
     WHEN old.content_hash != new.content_hash BEGIN
       DELETE FROM document_embeddings WHERE search_document_id = old.id;
     END;
+    CREATE TABLE IF NOT EXISTS sessions (
+      id TEXT PRIMARY KEY NOT NULL,
+      created_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS session_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+      position INTEGER NOT NULL CHECK (position >= 1),
+      type TEXT NOT NULL,
+      payload_json TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      UNIQUE (session_id, position)
+    );
+    CREATE INDEX IF NOT EXISTS session_events_by_session_pos
+      ON session_events(session_id, position);
   `)).immediate();
 }
 
