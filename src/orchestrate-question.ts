@@ -171,7 +171,7 @@ type Options = {
   respond?: Respond;
 };
 
-type ToolCall = { name: string; arguments: unknown; result: unknown };
+export type ToolCall = { name: string; arguments: unknown; result: unknown };
 
 function createResponder(): Respond {
   const client = new OpenAI({ maxRetries: 0, timeout: 60_000 });

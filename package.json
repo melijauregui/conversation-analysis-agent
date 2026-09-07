@@ -3,7 +3,9 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
-  "engines": { "bun": ">=1.4.2" },
+  "engines": {
+    "bun": ">=1.4.2"
+  },
   "packageManager": "bun@1.4.2",
   "devDependencies": {
     "@types/bun": "latest"
@@ -12,6 +14,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@opentui/core": "^0.5.10",
     "js-tiktoken": "1.0.21",
     "openai": "7.10.0",
     "sqlite-vec": "0.1.9",
@@ -19,6 +22,7 @@
   },
   "scripts": {
     "ask": "bun scripts/ask-question.ts",
+    "chat": "bun src/chat.ts",
     "data:import": "bun scripts/import-conversations.ts",
     "search:text": "bun scripts/search-text.ts",
     "search:vector": "bun scripts/search-vector.ts",

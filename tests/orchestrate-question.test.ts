@@ -244,7 +244,7 @@ test("ejecuta una secuencia de 3 preguntas de seguimiento conservando contexto, 
   const databasePath = fixture();
   const session = createSession({ databasePath });
   const embeddings = {
-    model: "text-embedding-3-small",
+    model: "text-embedding-3-small" as const,
     dimensions: 2,
     embedBatch: async ({ model }: { model: string }) => ({ model, data: [{ index: 0, embedding: [1, 0] }] }),
   };
@@ -293,7 +293,7 @@ test("ejecuta una secuencia de 3 preguntas de seguimiento conservando contexto, 
         }, "call_2");
       }
       // La consulta SQL real sobre fixture devolvió únicamente la conversación 'b'
-      const last = request.input.at(-1) as { type: string; output: string };
+      const last = request.input!.at(-1) as { type: string; output: string };
       expect(last.type).toBe("function_call_output");
       const sqlResult = JSON.parse(last.output);
       expect(sqlResult.rows).toEqual([{ conversation_id: "b", resolution: "no_resuelto" }]);
@@ -310,7 +310,7 @@ test("ejecuta una secuencia de 3 preguntas de seguimiento conservando contexto, 
     respond: async (request) => {
       reqTurn3++;
       // Verifica que el historial contenga los 2 turnos completos previos
-      expect(request.input.length).toBeGreaterThanOrEqual(8);
+      expect(request.input!.length).toBeGreaterThanOrEqual(8);
       expect(request.input).toContainEqual({
         role: "assistant",
         content: "De los casos anteriores, únicamente b quedó sin resolver.",
