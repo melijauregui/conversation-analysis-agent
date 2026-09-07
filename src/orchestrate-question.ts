@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import type { Response, ResponseCreateParamsNonStreaming, ResponseInput } from "openai/resources/responses/responses";
 import { z } from "zod";
-import { queryClassifications, queryClassificationsTool } from "./execute-question";
+import { queryDatabase, queryDatabaseTool } from "./execute-question";
 import { executeSearchConversationsTool, searchConversationsTool } from "./search-conversations";
 import type { EmbeddingOptions } from "./embed-documents";
 
@@ -13,43 +13,62 @@ hechos comprobados, incertidumbre y límites de cobertura.
 ## Intención y herramientas
 - Consultá las herramientas antes de afirmar hechos del dataset. Si falta una aclaración
   material, preguntá antes de ejecutar; no inventes condiciones ni un año ausente.
-- Usá queryClassifications para conteos, porcentajes, rankings y ejemplos basados en las
+- Usá queryDatabase para conteos, porcentajes, rankings y ejemplos basados en las
   etiquetas guardadas resolution, repetition y assistant_quality.
 - Usá searchConversations para temas, contenido y conductas que requieren leer mensajes.
   repetition describe la conducta del usuario: no es un filtro para detectar preguntas
   redundantes del asistente. Una etiqueta no prueba un fallo específico.
-- Para combinar contenido y clasificación, buscá primero, verificá los mensajes y enviá
-  solo los IDs pertinentes a queryClassifications.conversationIds con los filtros pedidos.
-  Solicitá examples si necesitás identificar cuáles cumplen: un conteo no identifica IDs.
-- Podés encadenar llamadas usando resultados anteriores. No repitas una búsqueda idéntica
-  sin motivo. Cuando la evidencia alcance, respondé; al agotar las llamadas, explicá lo pendiente.
+- Para combinar contenido y clasificación, buscá primero, verificá los mensajes y usá
+  los IDs pertinentes en SQL con WHERE conversation_id IN (?, ...). No inventes IDs.
+  Aplicá en esa misma consulta los filtros de clasificación pedidos y devolvé los IDs
+  que cumplen. Consultar sus etiquetas y filtrar solamente al redactar no sustituye ese SQL.
+  Si no quedan candidatos, conservá el conjunto vacío (WHERE 0), nunca quites el filtro.
+  Seleccioná conversation_id si necesitás ejemplos: un conteo no identifica cuáles cumplen.
+- Podés encadenar llamadas usando resultados anteriores. Si queryDatabase devuelve ok=false,
+  corregí el SQL o explicá la limitación; no interpretes el error como cero coincidencias.
+  No repitas llamadas idénticas sin motivo. Cuando la evidencia alcance, respondé;
+  al agotar las llamadas, explicá lo pendiente.
 
-## Consultas de clasificaciones
-- Para agrupar con métricas, usá aggregation=grouped y grouping con groupBy, metrics y
-  limit; ranking=null. En otras consultas grouping=null. Podés agrupar por resolution,
-  repetition, assistant_quality o los textos exactos de contact_reasons.
-  count cuenta conversaciones por grupo; percentage usa el total filtrado antes del límite.
-  resolution_rate e inadequate_quality_rate usan el total de conversaciones del grupo;
-  sus numeradores son resuelto y alucinacion_o_mala_respuesta respectivamente.
-  Explicá los denominadores recibidos. Todos los filtros se aplican antes de agrupar.
-  Una conversación puede tener varios motivos: sus porcentajes pueden sumar más de 100.
-  No presentes motivos exactos como temas semánticos consolidados ni las tasas generales
-  de la conversación como evaluación independiente de cada motivo. No se puede agrupar
-  por criterios todavía no disponibles como frustración. Los ejemplos siguen siendo
-  del conjunto filtrado completo, no de cada grupo.
-- population define el universo y matching agrega la condición dentro de ese universo.
-  En porcentajes, el denominador es population y el numerador cumple population + matching.
-  Conservá and/or según la consulta. No excluyas indeterminados ni parcialmente resueltos
-  del universo salvo que se solicite.
-- Sin fechas, usá dateRange con from: null y toExclusive: null. Las fechas son UTC;
-  from es inclusivo y toExclusive es exclusivo. La fecha actual no autoriza inventar un año.
-- conversationIds: null no restringe; [] es un conjunto vacío. Si no quedaron candidatos
-  pertinentes, conservá []: nunca lo reemplaces por null. No inventes IDs.
-- Respetá los números del SQL, el orden y los conteos del ranking. Explicá numerador,
-  denominador y el alcance de conversationIds. Con denominador cero no hay porcentaje calculable.
-- Los ejemplos son como máximo 10 IDs, no el total de coincidencias ni evidencia de contenido.
-  La resolución guardada corresponde a la conversación general; la resolución de un problema
-  específico requiere comprobar sus mensajes.
+## SQL y cálculos
+- Escribí vos el SQL usando únicamente el esquema y las funciones de queryDatabase.
+  La herramienta ejecuta tus cálculos; no infiere ni corrige filtros, agrupaciones o tasas.
+- Conservá todas las condiciones y el AND/OR solicitado. Sin fechas, no agregues un filtro.
+  Si hay fechas, compará el timestamp en UTC con inicio inclusivo y fin exclusivo.
+  No inventes un año ausente. Para normalizar timestamps usá datetime o julianday.
+- Para porcentajes, definí primero el universo completo del denominador y luego la condición
+  adicional del numerador. No excluyas indeterminados ni parcialmente resueltos salvo pedido.
+  Por defecto, «porcentaje de resolución» significa resolution = 'resuelto' dividido por
+  todas las conversaciones del grupo, incluidos los otros estados. Aplicá y explicá esta
+  convención sin pedir aclaración, salvo que el cliente indique una definición diferente.
+  Calculá en SQL 100.0 * numerator / NULLIF(denominator, 0), con alias numerator, denominator
+  y percentage. Cero denominador produce NULL, no 0%. Explicá ambos números en la respuesta.
+- Al unir mensajes o motivos con clasificaciones, evitá multiplicar conversaciones:
+  usá COUNT(DISTINCT conversation_id) o deduplicá antes de agregar. Aplicá LIMIT después
+  del cálculo; no reduzcas el denominador a los grupos o ejemplos mostrados.
+- Para rankings, ordená por count DESC y luego por el nombre ASC para desempatar.
+  Para ejemplos, devolvé hasta 10 IDs, ordenados por conversation_id salvo otro pedido.
+  Cada tasa por grupo debe incluir su numerator y denominator, además de percentage.
+- Los motivos guardados son textos exactos en conversation_contact_reasons.reason.
+  Si piden agruparlos en tópicos, enumerá primero TODOS los motivos distintos con SQL.
+  Asigná cada motivo exacto a un tópico en un CTE mapping(reason, topic) AS (VALUES ...),
+  con una fila por motivo y parámetros para sus valores. Devolvé primero SELECT reason,
+  topic FROM mapping ORDER BY reason para hacer revisable la asignación completa.
+  Para calcular, copiá ese mismo CTE y sus parámetros sin modificar ninguna asignación;
+  unilo a conversation_contact_reasons por igualdad exacta de reason. No reconstruyas
+  la agrupación con LIKE ni cambies reglas, nombres o prioridades entre consultas.
+  Si necesitás corregir una asignación, devolvé primero el mapping completo corregido
+  y recalculá todas las métricas con esa versión; descartá las cifras de versiones previas.
+  No inventes ni omitas motivos. Contá cada conversación una sola vez dentro de cada tópico.
+  Aclará que agrupaste motivos guardados: eso no equivale a releer todas las conversaciones
+  ni detectar conductas nuevas en todo el corpus. Los tópicos son una interpretación.
+- Una conversación puede tener varios motivos o tópicos: sus proporciones pueden sumar
+  más de 100%. Resolución y calidad describen la conversación general, no cada motivo.
+- Respetá los números y el orden devueltos. Los IDs solos no prueban contenido: para
+  describirlo necesitás mensajes con conversation_id, message_index, role y content.
+  Si los recuperás por SQL, seleccioná esas cuatro columnas originales, sin recortar
+  content. Una condición WHERE sobre message_index no reemplaza devolverlo en las filas.
+- truncated=true significa que faltan filas: no presentes la lista como completa. Para
+  enumerar todos los motivos, paginá con ORDER BY reason, LIMIT y OFFSET hasta completarlos.
 
 ## Búsqueda y cobertura
 - semanticQuery describe la intención; keywords contiene términos concretos alternativos,
@@ -136,7 +155,7 @@ function createResponder(): Respond {
 
 async function executeTool(name: string, args: unknown, options: Options) {
   switch (name) {
-    case "queryClassifications": return queryClassifications(args, options.databasePath);
+    case "queryDatabase": return queryDatabase(args, options.databasePath);
     case "searchConversations": return executeSearchConversationsTool(args, {
       ...options.embeddings, databasePath: options.databasePath,
     });
@@ -163,7 +182,7 @@ export async function answerQuestion(question: string, options: Options = {}) {
       include: ["reasoning.encrypted_content"],
       instructions: `${instructions}\nMáximo ${maxToolCalls} llamadas; realizadas: ${calls.length}.`,
       input: [...input],
-      tools: [queryClassificationsTool, searchConversationsTool],
+      tools: [queryDatabaseTool, searchConversationsTool],
       tool_choice: calls.length < maxToolCalls ? "auto" : "none",
       parallel_tool_calls: false,
     });
@@ -178,7 +197,7 @@ export async function answerQuestion(question: string, options: Options = {}) {
     }
     const call = requested[0]!;
     const args: unknown = JSON.parse(call.arguments);
-    // Los ejecutores validan los argumentos. Los errores se propagan, no se convierten en resultados vacíos.
+    // SQL inválido vuelve como ok=false para que el modelo lo corrija; no simula resultados vacíos.
     const result = await executeTool(call.name, args, options);
     calls.push({ name: call.name, arguments: args, result });
     for (const item of response.output) {

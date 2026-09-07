@@ -27,10 +27,8 @@ function fixture() {
   return databasePath;
 }
 
-const query = { aggregation: "count", conversationIds: null,
-  population: { operator: "and", filters: [] },
-  matching: { operator: "and", filters: [{ field: "resolution", value: "resuelto" }] },
-  dateRange: { from: null, toExclusive: null }, ranking: null, examples: 3 };
+const query = { sql: "SELECT COUNT(*) AS count FROM classifications WHERE resolution = ?", parameters: ["resuelto"] };
+const sqlCount = { ok: true, columns: ["count"], rows: [{ count: 1 }], truncated: false };
 
 function tool(name: string, args: unknown, call_id = "call_1"): Awaited<ReturnType<Respond>> {
   return { status: "completed", output_text: "", output: [
@@ -46,12 +44,12 @@ test("ofrece ambas herramientas y devuelve el resultado SQL al modelo antes de r
     respond: async (request) => {
       requests++;
       expect(request.tools?.map((t) => t.type === "function" && t.name))
-        .toEqual(["queryClassifications", "searchConversations"]);
+        .toEqual(["queryDatabase", "searchConversations"]);
       expect(request.parallel_tool_calls).toBe(false);
       expect(request.store).toBe(false);
-      if (requests === 1) return tool("queryClassifications", query);
+      if (requests === 1) return tool("queryDatabase", query);
       expect(request.input).toContainEqual({ type: "function_call_output", call_id: "call_1",
-        output: JSON.stringify({ kind: "count", count: 1, examples: ["a"] }) });
+        output: JSON.stringify(sqlCount) });
       expect(request.input).toContainEqual({ type: "reasoning", id: "reason_call_1",
         summary: [], encrypted_content: "encrypted" });
       return final("Hay 1 conversación resuelta entre las clasificadas.");
@@ -80,16 +78,18 @@ test("encadena búsqueda real con filtro SQL sobre los IDs recuperados", async (
       if (requests === 2) {
         expect(data.coverage).toBe("retrieved_candidates");
         expect(data.results[0].messages[0].content).toBe("Problemas con passkey");
-        return tool("queryClassifications", { ...query,
-          conversationIds: data.results.map((item: { conversation_id: string }) => item.conversation_id),
+        const ids = data.results.map((item: { conversation_id: string }) => item.conversation_id);
+        return tool("queryDatabase", {
+          sql: "SELECT COUNT(*) AS count FROM classifications WHERE resolution = ? AND conversation_id IN (?, ?)",
+          parameters: ["resuelto", ...ids],
         }, "call_2");
       }
-      expect(data).toEqual({ kind: "count", count: 1, examples: ["a"] });
+      expect(data).toEqual(sqlCount);
       return final("Entre los candidatos, a figura como resuelta.");
     },
   });
   expect(requests).toBe(3);
-  expect(result.calls.map((call) => call.name)).toEqual(["searchConversations", "queryClassifications"]);
+  expect(result.calls.map((call) => call.name)).toEqual(["searchConversations", "queryDatabase"]);
 });
 
 test("puede pedir aclaración sin ejecutar herramientas", async () => {
@@ -102,9 +102,9 @@ test("al alcanzar el límite solicita respuesta sin herramientas y rechaza más 
     let requests = 0;
     const promise = answerQuestion("resueltas", { databasePath: fixture(), maxToolCalls: 1,
       respond: async (request) => {
-        if (++requests === 1) return tool("queryClassifications", query);
+        if (++requests === 1) return tool("queryDatabase", query);
         expect(request.tool_choice).toBe("none");
-        return violate ? tool("queryClassifications", query) : final("Hay 1.");
+        return violate ? tool("queryDatabase", query) : final("Hay 1.");
       },
     });
     if (violate) await expect(promise).rejects.toThrow("límite");
@@ -114,7 +114,7 @@ test("al alcanzar el límite solicita respuesta sin herramientas y rechaza más 
 });
 
 test("propaga errores de herramientas y respuestas incompletas sin fabricar respuestas", async () => {
-  for (const response of [tool("desconocida", {}), tool("queryClassifications", { sql: "SELECT 1" }),
+  for (const response of [tool("desconocida", {}),
     { ...final("parcial"), status: "incomplete" as const }, final("")]) {
     let calls = 0;
     await expect(answerQuestion("consulta", { respond: async () => { calls++; return response; } })).rejects.toThrow();
@@ -122,4 +122,25 @@ test("propaga errores de herramientas y respuestas incompletas sin fabricar resp
   }
   await expect(answerQuestion("consulta", { respond: async () => { throw new Error("API falló"); } }))
     .rejects.toThrow("API falló");
+});
+
+test("devuelve errores SQL al modelo para corregirlos dentro del presupuesto sin alterar la base", async () => {
+  let requests = 0;
+  const result = await answerQuestion("¿Cuántas quedaron resueltas?", { databasePath: fixture(),
+    respond: async (request) => {
+      if (++requests === 1) return tool("queryDatabase", { sql: "DELETE FROM classifications", parameters: [] });
+      const input = request.input;
+      if (!Array.isArray(input)) throw new Error("Falta historial");
+      const last = input.at(-1);
+      if (last?.type !== "function_call_output" || typeof last.output !== "string") throw new Error("Falta resultado");
+      if (requests === 2) {
+        expect(JSON.parse(last.output)).toMatchObject({ ok: false, error: expect.any(String) });
+        return tool("queryDatabase", query, "fixed");
+      }
+      expect(JSON.parse(last.output)).toEqual(sqlCount);
+      return final("Hay 1 conversación resuelta.");
+    },
+  });
+  expect(result.calls).toHaveLength(2);
+  expect(requests).toBe(3);
 });

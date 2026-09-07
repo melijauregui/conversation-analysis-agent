@@ -1,11 +1,11 @@
 import { fixtureEmbeddings } from "./embedding-fixture";
 import { openDatabase } from "../src/database";
 import { afterEach, expect, test } from "bun:test";
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { saveClassifiedBatch } from "../src/save-classified-batch";
-import { queryClassifications, queryClassificationsTool, type ClassificationQuery } from "../src/execute-question";
+import { queryDatabase, queryDatabaseTool } from "../src/execute-question";
 import type { Conversation, ConversationLabels } from "../src/classify-conversation";
 
 const dirs: string[] = [];
@@ -59,6 +59,7 @@ function seed() {
   const db = openDatabase(databasePath, "existing");
   try {
     db.query("INSERT INTO conversations (id, metadata_json) VALUES (?, ?)").run("d", JSON.stringify(conversations[3]!.metadata));
+    db.run("PRAGMA wal_checkpoint(TRUNCATE)");
   } finally { db.close(); }
   return databasePath;
 }
@@ -86,263 +87,131 @@ function labels(
   };
 }
 
-function classificationQuery(overrides: Partial<ClassificationQuery> = {}): ClassificationQuery {
-  return {
-    aggregation: "count",
-    grouping: null,
-    conversationIds: null,
-    population: { operator: "and", filters: [] },
-    matching: { operator: "and", filters: [] },
-    dateRange: { from: null, toExclusive: null },
-    ranking: null,
-    examples: 0,
-    ...overrides,
-  };
+const query = (sql: string, parameters: (string | number | null)[] = []) => ({ sql, parameters });
+
+async function rows(sql: string, databasePath: string, parameters: (string | number | null)[] = []) {
+  const result = await queryDatabase(query(sql, parameters), databasePath);
+  if (!result.ok) throw new Error(result.error);
+  expect(result.truncated).toBe(false);
+  return result.rows;
 }
 
-test("cuenta conversaciones clasificadas", () => {
-  const databasePath = seed();
-  const result = queryClassifications(classificationQuery(), databasePath);
-  expect(result).toEqual({
-    kind: "count",
-    count: 3,
-  });
+test("ejecuta conteos y porcentajes con el denominador correcto, incluido cero", async () => {
+  const path = seed();
+  expect(await rows("SELECT COUNT(*) AS count FROM classifications", path)).toEqual([{ count: 3 }]);
+  expect(await rows("SELECT COUNT(*) AS count FROM conversations", path)).toEqual([{ count: 4 }]);
+  const sql = `WITH population AS (SELECT resolution FROM classifications WHERE assistant_quality = ?)
+    SELECT COUNT(CASE WHEN resolution = 'no_resuelto' THEN 1 END) AS numerator,
+      COUNT(*) AS denominator,
+      100.0 * COUNT(CASE WHEN resolution = 'no_resuelto' THEN 1 END) / NULLIF(COUNT(*), 0) AS percentage
+    FROM population`;
+  expect(await rows(sql, path, ["adecuada"])).toEqual([{ numerator: 1, denominator: 2, percentage: 50 }]);
+  expect(await rows(sql, path, ["indeterminado"])).toEqual([{ numerator: 0, denominator: 0, percentage: null }]);
 });
 
-test("agrupa motivos exactos sin duplicar conversaciones y conserva denominadores antes del límite", () => {
-  const databasePath = seed();
-  const db = openDatabase(databasePath, "existing");
-  try {
-    expect(db.query("SELECT reason FROM conversation_contact_reasons WHERE conversation_id = 'b' ORDER BY reason").all())
-      .toEqual([{ reason: "Cancelar la cuenta" }, { reason: "Pedir reembolso" }]);
-  } finally { db.close(); }
-  const result = queryClassifications(classificationQuery({ aggregation: "grouped",
-    grouping: { groupBy: "contact_reasons", metrics: ["count", "percentage", "resolution_rate", "inadequate_quality_rate"], limit: 1 },
-  }), databasePath);
-  expect(result).toEqual({ kind: "grouped", groupBy: "contact_reasons", totalConversations: 3, items: [
-    { value: "Cancelar la cuenta", metrics: { count: 2,
-      percentage: { numerator: 2, denominator: 3, percentage: 200 / 3 },
-      resolution_rate: { numerator: 1, denominator: 2, percentage: 50 },
-      inadequate_quality_rate: { numerator: 0, denominator: 2, percentage: 0 },
-    } },
-  ] });
+test("el modelo puede agrupar, calcular tasas y remapear motivos con CTE sin duplicar conversaciones", async () => {
+  const path = seed();
+  const sql = `WITH mapping(reason, topic) AS (VALUES (?, ?), (?, ?)),
+    members AS (SELECT DISTINCT c.conversation_id, c.resolution, m.topic
+      FROM classifications c JOIN conversation_contact_reasons r USING (conversation_id)
+      JOIN mapping m ON m.reason = r.reason)
+    SELECT topic, COUNT(*) AS count,
+      SUM(resolution = 'resuelto') AS numerator, COUNT(*) AS denominator,
+      100.0 * SUM(resolution = 'resuelto') / NULLIF(COUNT(*), 0) AS percentage
+    FROM members GROUP BY topic ORDER BY count DESC, topic ASC LIMIT 5`;
+  expect(await rows(sql, path, ["Cancelar la cuenta", "Cuenta", "Pedir reembolso", "Cuenta"]))
+    .toEqual([{ topic: "Cuenta", count: 2, numerator: 1, denominator: 2, percentage: 50 }]);
+  expect(await rows(`SELECT reason, COUNT(DISTINCT conversation_id) AS count
+    FROM conversation_contact_reasons GROUP BY reason ORDER BY count DESC, reason LIMIT 1`, path))
+    .toEqual([{ reason: "Cancelar la cuenta", count: 2 }]);
 });
 
-test("agrupación aplica IDs, ambos filtros y fechas y devuelve solo métricas solicitadas", () => {
-  const databasePath = seed();
-  const result = queryClassifications(classificationQuery({ aggregation: "grouped",
-    conversationIds: ["a", "b", "c", "d"],
-    population: { operator: "or", filters: [{ field: "repetition", value: "ausente" }, { field: "resolution", value: "resuelto" }] },
-    matching: { operator: "and", filters: [{ field: "resolution", value: "no_resuelto" }] },
-    dateRange: { from: "2024-01-01", toExclusive: "2024-02-01" },
-    grouping: { groupBy: "assistant_quality", metrics: ["count"], limit: 10 }, examples: 3,
-  }), databasePath);
-  expect(result).toEqual({ kind: "grouped", groupBy: "assistant_quality", totalConversations: 1,
-    items: [{ value: "adecuada", metrics: { count: 1 } }], examples: ["a"] });
-  const empty = queryClassifications(classificationQuery({ aggregation: "grouped", conversationIds: [],
-    grouping: { groupBy: "resolution", metrics: ["percentage"], limit: 10 },
-  }), databasePath);
-  expect(empty).toEqual({ kind: "grouped", groupBy: "resolution", totalConversations: 0, items: [] });
+test("acepta ventanas, JSON, fechas UTC, AND/OR, HAVING y parámetros sin interpretar sus valores como SQL", async () => {
+  const path = seed();
+  expect(await rows(`SELECT c.conversation_id, ROW_NUMBER() OVER (ORDER BY c.conversation_id) AS position
+    FROM classifications c JOIN conversations v ON v.id = c.conversation_id
+    WHERE julianday(json_extract(v.metadata_json, '$.timestamp')) >= julianday(?)
+      AND julianday(json_extract(v.metadata_json, '$.timestamp')) < julianday(?)
+      AND (c.resolution = ? OR c.repetition = ?)
+    GROUP BY c.conversation_id HAVING COUNT(*) > 0 ORDER BY c.conversation_id`, path,
+    ["2024-01-01", "2024-02-01", "resuelto", "ausente"]))
+    .toEqual([{ conversation_id: "a", position: 1 }, { conversation_id: "b", position: 2 }]);
+  const hostile = "x'); DROP TABLE classifications; --";
+  expect(await rows("SELECT ? AS value, 'DELETE; -- no SQL' AS literal;", path, [hostile]))
+    .toEqual([{ value: hostile, literal: "DELETE; -- no SQL" }]);
+  expect(await rows("SELECT conversation_id FROM classifications WHERE conversation_id IN (?, ?, ?)", path, ["a", "a", "inexistente"]))
+    .toEqual([{ conversation_id: "a" }]);
+  expect(await rows("SELECT conversation_id FROM classifications WHERE 0", path)).toEqual([]);
 });
 
-test("mantiene indeterminados en tasas y no combina motivos equivalentes ni vacíos", () => {
-  const databasePath = seed();
-  const db = openDatabase(databasePath, "existing");
-  try {
-    db.query("UPDATE classifications SET resolution = 'indeterminado' WHERE conversation_id = 'a'").run();
-    db.query("DELETE FROM conversation_contact_reasons WHERE conversation_id IN ('a', 'c')").run();
-    for (const reason of ["Cancelar mi cuenta", "", "  "]) {
-      db.query("INSERT INTO conversation_contact_reasons VALUES ('a', ?)").run(reason);
-    }
-  } finally { db.close(); }
-  const result = queryClassifications(classificationQuery({ aggregation: "grouped",
-    grouping: { groupBy: "contact_reasons", metrics: ["count", "resolution_rate"], limit: 10 },
-  }), databasePath);
-  expect(result.kind).toBe("grouped");
-  if (result.kind !== "grouped") return;
-  expect(result.totalConversations).toBe(3);
-  expect(result.items.map((item) => item.value)).toEqual(["Cancelar la cuenta", "Cancelar mi cuenta", "Pedir reembolso"]);
-  expect(result.items[1]!.metrics.resolution_rate).toEqual({ numerator: 0, denominator: 1, percentage: 0 });
-  const repetition = queryClassifications(classificationQuery({ aggregation: "grouped",
-    grouping: { groupBy: "repetition", metrics: ["resolution_rate"], limit: 10 },
-  }), databasePath);
-  expect(repetition).toMatchObject({ items: [{ value: "ausente", metrics: {
-    resolution_rate: { numerator: 1, denominator: 2, percentage: 50 },
-  } }, { value: "presente", metrics: { resolution_rate: { numerator: 0, denominator: 1, percentage: 0 } } }] });
-});
-
-test("rechaza agrupaciones o métricas no admitidas antes de abrir SQLite", () => {
-  const query = classificationQuery({ aggregation: "grouped",
-    grouping: { groupBy: "resolution", metrics: ["count"], limit: 5 } });
-  for (const override of [{ grouping: null }, { aggregation: "count" },
-    ...[{ groupBy: "frustration" }, { groupBy: "resolution; DROP TABLE classifications" },
-      { metrics: [] }, { metrics: ["arbitrary_sql"] }, { metrics: ["count", "count"] }, { limit: 0 },
-    ].map((change) => ({ grouping: { ...query.grouping, ...change } }))]) {
-    expect(() => queryClassifications({ ...query, ...override }, "/no-existe/test.sqlite"))
-      .toThrow(/grouping|Invalid|Too small/);
+test("bloquea escrituras, acceso externo y columnas internas antes de ejecutar; preserva la base", async () => {
+  const path = seed();
+  const external = join(dirs.at(-1)!, "must-not-exist.sqlite");
+  const hash = async () => new Bun.CryptoHasher("sha256").update(await Bun.file(path).arrayBuffer()).digest("hex");
+  const before = await hash();
+  for (const sql of [
+    "DELETE FROM classifications", "UPDATE classifications SET resolution='resuelto'",
+    "INSERT INTO conversations VALUES ('x', '{}')", "DROP TABLE messages",
+    "CREATE TABLE x(y)", "CREATE TEMP TABLE x(y)", "BEGIN", "PRAGMA query_only=OFF",
+    "PRAGMA writable_schema=ON", "PRAGMA table_info(classifications)",
+    `ATTACH DATABASE '${external}' AS external`, `VACUUM INTO '${external}'`,
+    "SELECT load_extension('/tmp/x')", "SELECT writefile('/tmp/x', 'x')", "SELECT readfile('/etc/passwd')",
+    "SELECT * FROM pragma_table_info('classifications')", "SELECT * FROM sqlite_master",
+    "SELECT * FROM document_embeddings", "SELECT * FROM search_documents_fts",
+    "SELECT configuration_json FROM classifications", "SELECT * FROM classifications",
+    "SELECT (SELECT configuration_json FROM classifications LIMIT 1) AS secret",
+    "WITH hidden AS (SELECT * FROM document_embeddings) SELECT COUNT(*) FROM hidden",
+    "WITH ids AS (SELECT conversation_id FROM classifications) DELETE FROM classifications WHERE conversation_id IN (SELECT * FROM ids)",
+    "SELECT COUNT(*) FROM classifications; DELETE FROM classifications",
+    "SELECT 1; SELECT 2", "SELECT 1; PRAGMA query_only=OFF",
+    "SELECT randomblob(1000000000)", "SELECT printf('%1000000000s', 'x')",
+  ]) {
+    const result = await queryDatabase(query(sql), path);
+    expect(result.ok, sql).toBe(false);
+    if (!result.ok) expect(result.error.length).toBeGreaterThan(0);
   }
+  expect(existsSync(external)).toBe(false);
+  expect(await hash()).toBe(before);
+  expect(await rows("SELECT COUNT(*) AS count FROM classifications", path)).toEqual([{ count: 3 }]);
 });
 
-test("filtra con AND y OR", () => {
-  const databasePath = seed();
-  const result = queryClassifications(
-    classificationQuery({
-      matching: {
-        operator: "or",
-        filters: [
-          { field: "resolution", value: "resuelto" },
-          {
-            field: "repetition",
-            value: "presente",
-          },
-        ],
-      },
-    }),
-    databasePath,
-  );
-  expect(result).toMatchObject({ kind: "count", count: 2 });
-});
-
-test("el porcentaje usa population como denominador y matching como numerador", () => {
-  const databasePath = seed();
-  const result = queryClassifications(
-    classificationQuery({
-      aggregation: "percentage",
-      population: {
-        operator: "and",
-        filters: [{ field: "assistant_quality", value: "adecuada" }],
-      },
-      matching: {
-        operator: "and",
-        filters: [{ field: "resolution", value: "no_resuelto" }],
-      },
-    }),
-    databasePath,
-  );
-  expect(result).toMatchObject({
-    kind: "percentage",
-    numerator: 1,
-    denominator: 2,
-    percentage: 50,
-  });
-});
-
-test("dateRange filtra por metadata.timestamp", () => {
-  const databasePath = seed();
-  const result = queryClassifications(
-    classificationQuery({
-      dateRange: { from: "2024-01-01", toExclusive: "2024-02-01" },
-    }),
-    databasePath,
-  );
-  expect(result).toMatchObject({ kind: "count", count: 2 });
-});
-
-test("ranking agrupa y limita", () => {
-  const databasePath = seed();
-  const result = queryClassifications(
-    classificationQuery({
-      aggregation: "ranking",
-      ranking: { field: "resolution", limit: 2 },
-    }),
-    databasePath,
-  );
-  expect(result).toMatchObject({
-    kind: "ranking",
-    field: "resolution",
-    items: [
-      { value: "no_resuelto", count: 2 },
-      { value: "resuelto", count: 1 },
-    ],
-  });
-});
-
-test("devuelve la cantidad pedida de ejemplos del conjunto filtrado", () => {
-  const databasePath = seed();
-  const result = queryClassifications(
-    classificationQuery({
-      matching: {
-        operator: "and",
-        filters: [{ field: "resolution", value: "no_resuelto" }],
-      },
-      examples: 1,
-    }),
-    databasePath,
-  );
-  expect(result.kind).toBe("count");
-  if (result.kind !== "count") return;
-  expect(result.examples).toEqual(["a"]);
-});
-
-test("queryClassifications acepta argumentos de herramienta sin kind y reutiliza los conteos", () => {
-  const databasePath = seed();
-  const query = classificationQuery({ examples: 2 });
-  expect(queryClassifications(JSON.parse(JSON.stringify(query)), databasePath))
-    .toEqual({ kind: "count", count: 3, examples: ["a", "b"] });
-  expect(queryClassificationsTool.name).toBe("queryClassifications");
-  expect(queryClassificationsTool.strict).toBe(true);
-  expect(queryClassificationsTool.parameters?.properties).not.toHaveProperty("databasePath");
-  expect(queryClassificationsTool.parameters?.properties).not.toHaveProperty("kind");
-});
-
-test("rechaza parámetros inválidos y condiciones no soportadas antes de abrir SQLite", () => {
-  const query = classificationQuery();
-  const invalid = [
-    { ...query, sql: "DROP TABLE classifications" },
-    { ...query, databasePath: "otra.sqlite" },
-    { ...query, topic: "passkey" },
-    { ...query, matching: { ...query.matching, topic: "passkey" } },
-    { ...query, matching: { operator: "and", filters: [{ field: "resolution", value: "inventado" }] } },
-    { ...query, matching: { operator: "and", filters: [{ field: "notes", value: "passkey" }] } },
-    { ...query, aggregation: "ranking", ranking: null },
-    { ...query, ranking: { field: "resolution", limit: 2 } },
-    { ...query, aggregation: "ranking", ranking: { field: "resolution; DROP TABLE classifications", limit: 2 } },
-    { ...query, aggregation: "ranking", ranking: { field: "resolution", limit: 21 } },
-    { ...query, examples: 11 },
-    { ...query, dateRange: { from: "2024-02-30", toExclusive: null } },
-    { ...query, dateRange: { from: "2024-02-01", toExclusive: "2024-01-01" } },
-  ];
-  for (const input of invalid) {
-    expect(() => queryClassifications(input, "/no-existe/test.sqlite"))
-      .toThrow(/Unrecognized key|Invalid|Too big|ranking|intervalo/);
+test("rechaza argumentos inválidos, errores SQL y sentencias sobrantes sin simular cero resultados", async () => {
+  const path = seed();
+  for (const input of [null, {}, { sql: "SELECT 1" }, { ...query("SELECT 1"), databasePath: path },
+    query(""), query("SELECT 1", [NaN]), query("SELECT 1", [Infinity]), query("x".repeat(30_001)),
+    query("SELECT ?", ["é".repeat(30_000), "é".repeat(30_000), "é".repeat(30_000)])]) {
+    expect((await queryDatabase(input, path)).ok).toBe(false);
   }
-});
-
-test("IDs restringen conteos y ejemplos, sin duplicados ni IDs ajenos al conjunto clasificado", () => {
-  const databasePath = seed();
-  const plan = classificationQuery({ conversationIds: ["a", "a", "b", "d", "inexistente", "a') OR 1=1 --"],
-    matching: { operator: "and", filters: [{ field: "resolution", value: "no_resuelto" }] }, examples: 10 });
-  expect(queryClassifications(plan, databasePath)).toEqual({ kind: "count", count: 1, examples: ["a"] });
-  expect(queryClassifications(classificationQuery({ conversationIds: ["c"],
-    dateRange: { from: "2024-01-01", toExclusive: "2024-02-01" } }), databasePath))
-    .toEqual({ kind: "count", count: 0 });
-});
-
-test("IDs restringen también el denominador de porcentajes y los rankings", () => {
-  const databasePath = seed();
-  expect(queryClassifications(classificationQuery({ conversationIds: ["a", "b"], aggregation: "percentage",
-    matching: { operator: "and", filters: [{ field: "resolution", value: "no_resuelto" }] },
-  }), databasePath)).toEqual({ kind: "percentage", numerator: 1, denominator: 2, percentage: 50 });
-  expect(queryClassifications(classificationQuery({ conversationIds: ["b"], aggregation: "ranking",
-    ranking: { field: "resolution", limit: 5 }, examples: 10,
-  }), databasePath)).toEqual({ kind: "ranking", field: "resolution",
-    items: [{ value: "resuelto", count: 1 }], examples: ["b"] });
-});
-
-test("IDs vacíos nunca amplían la consulta; null u omisión conservan el alcance original", () => {
-  const databasePath = seed();
-  expect(queryClassifications(classificationQuery({ conversationIds: [], examples: 10 }), databasePath))
-    .toEqual({ kind: "count", count: 0, examples: [] });
-  expect(queryClassifications(classificationQuery({ conversationIds: [], aggregation: "percentage" }), databasePath))
-    .toEqual({ kind: "percentage", numerator: 0, denominator: 0, percentage: null });
-  expect(queryClassifications(classificationQuery({ conversationIds: [], aggregation: "ranking",
-    ranking: { field: "resolution", limit: 5 } }), databasePath))
-    .toEqual({ kind: "ranking", field: "resolution", items: [] });
-  const { conversationIds, ...query } = classificationQuery();
-  expect(queryClassifications(query, databasePath)).toEqual({ kind: "count", count: 3 });
-  expect(queryClassifications({ ...query, conversationIds: null }, databasePath)).toEqual({ kind: "count", count: 3 });
-  for (const ids of [[""], [" "], [123], "a", Array(1001).fill("a")]) {
-    expect(() => queryClassifications({ ...query, conversationIds: ids }, databasePath))
-      .toThrow(/Invalid|Too small|Too big/);
+  for (const sql of ["SELEC x", "SELECT missing FROM classifications", "SELECT 1 AS x, 2 AS x", "SELECT ? AS missing_parameter"]) {
+    expect((await queryDatabase(query(sql), path)).ok, sql).toBe(false);
   }
+  const missing = join(dirs.at(-1)!, "absent.sqlite");
+  expect((await queryDatabase(query("SELECT 1"), missing)).ok).toBe(false);
+  expect(existsSync(missing)).toBe(false);
+  expect(queryDatabaseTool.name).toBe("queryDatabase");
+  expect(queryDatabaseTool.strict).toBe(true);
+  expect(Object.keys(queryDatabaseTool.parameters!.properties!)).toEqual(["sql", "parameters"]);
 });
+
+test("preserva enteros grandes y señala límites de resultados sin convertir filas truncadas en totales", async () => {
+  const path = seed();
+  expect(await rows("SELECT 9223372036854775807 AS large, 42 AS small", path))
+    .toEqual([{ large: "9223372036854775807", small: 42 }]);
+  const result = await queryDatabase(query(`WITH RECURSIVE nums(n) AS (VALUES(1) UNION ALL SELECT n+1 FROM nums WHERE n<501)
+    SELECT n FROM nums ORDER BY n`), path);
+  expect(result.ok).toBe(true);
+  if (!result.ok) throw new Error(result.error);
+  expect(result.rows).toHaveLength(500);
+  expect(result.rows.at(-1)).toEqual({ n: 500 });
+  expect(result.truncated).toBe(true);
+  expect(await rows("/* comentario permitido */ SELECT 'a;b' AS value;", path)).toEqual([{ value: "a;b" }]);
+  expect((await queryDatabase(query("SELECT 1e999 AS infinity"), path)).ok).toBe(false);
+});
+
+test("interrumpe una consulta sin fin y permite seguir consultando", async () => {
+  const path = seed();
+  const result = await queryDatabase(query(`WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x+1 FROM n)
+    SELECT COUNT(*) AS count FROM n`), path);
+  expect(result).toMatchObject({ ok: false, error: expect.stringContaining("tiempo permitido") });
+  expect(await rows("SELECT COUNT(*) AS count FROM classifications", path)).toEqual([{ count: 3 }]);
+}, 10_000);

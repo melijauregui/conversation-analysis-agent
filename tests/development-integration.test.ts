@@ -2,7 +2,8 @@ import { expect, test } from "bun:test";
 import { mkdir } from "node:fs/promises";
 import { openDatabase } from "../src/database";
 import { answerQuestion } from "../src/orchestrate-question";
-import { parseClassificationQuery } from "../src/execute-question";
+import { sqlQuerySchema } from "../src/execute-question";
+import type { SqlResult } from "../src/sql-policy";
 import { searchConversationsSchema, type searchConversations } from "../src/search-conversations";
 import type { Conversation } from "../src/classify-conversation";
 
@@ -14,96 +15,104 @@ function integrationTest(name: string, run: () => Promise<void>, timeout: number
   }, timeout);
 }
 
-integrationTest("development: cinco motivos exactos con cantidad y porcentaje de resolución", async () => {
-  if (!process.env.OPENAI_API_KEY) throw new Error("Falta OPENAI_API_KEY para el test de integración.");
-  const question = "Mostrame los 5 motivos de contacto exactos más frecuentes, su cantidad y porcentaje de resolución";
-  const development: { conversations: { id: string }[] } = await Bun.file(
-    new URL("../data/development.json", import.meta.url),
-  ).json();
+function sqlCalls(actual: Awaited<ReturnType<typeof answerQuestion>>) {
+  return actual.calls.filter((call) => call.name === "queryDatabase").map((call) => ({
+    ...call, args: sqlQuerySchema.parse(call.arguments), result: call.result as SqlResult,
+  }));
+}
+
+function sqlRows(actual: Awaited<ReturnType<typeof answerQuestion>>) {
+  return sqlCalls(actual).flatMap(({ result }) => result.ok ? result.rows : []);
+}
+
+async function report(number: string, question: string, actual: Awaited<ReturnType<typeof answerQuestion>>, expected: unknown) {
+  const path = new URL(`../reports/development-question-${number}.json`, import.meta.url);
+  await mkdir(new URL("../reports/", import.meta.url), { recursive: true });
+  await Bun.write(path, JSON.stringify({ question, model: process.env.OPENAI_MODEL ?? "gpt-5.6-luna",
+    ranAt: new Date().toISOString(), expected, actual,
+    manualReview: "Comparar la explicación con SQL y mensajes. La validación de permisos no verifica intención ni coherencia semántica.",
+  }, null, 2));
+  console.log(`Respuesta del modelo:\n${actual.answer}\nReporte: ${path.pathname}`);
+}
+
+function storedReasons() {
   const db = openDatabase(undefined, "readonly");
-  let rows: { conversation_id: string; resolution: string }[];
-  let reasons: { conversation_id: string; reason: string }[];
   try {
-    rows = db.query<typeof rows[number], []>(
-      "SELECT conversation_id, resolution FROM classifications ORDER BY conversation_id",
-    ).all();
-    reasons = db.query<typeof reasons[number], []>(
-      "SELECT conversation_id, reason FROM conversation_contact_reasons ORDER BY conversation_id, reason",
+    return db.query<{ conversation_id: string; reason: string; resolution: string }, []>(
+      `SELECT r.conversation_id, r.reason, c.resolution FROM conversation_contact_reasons r
+       JOIN classifications c USING (conversation_id) ORDER BY r.conversation_id, r.reason`,
     ).all();
   } finally { db.close(); }
-  expect(rows.map((row) => row.conversation_id))
-    .toEqual(development.conversations.map(({ id }) => id).sort());
+}
 
-  // Oráculo independiente: agrupa en JS los textos exactos y deduplica por conversación.
-  const groups = new Map<string, { value: string; ids: string[]; resolvedIds: string[] }>();
-  for (const row of rows) {
-    const conversationReasons = reasons.filter((item) => item.conversation_id === row.conversation_id).map((item) => item.reason);
-    for (const reason of new Set(conversationReasons)) {
-      if (typeof reason !== "string" || !reason.trim()) continue;
-      const group = groups.get(reason) ?? { value: reason, ids: [], resolvedIds: [] };
-      group.ids.push(row.conversation_id);
-      if (row.resolution === "resuelto") group.resolvedIds.push(row.conversation_id);
-      groups.set(reason, group);
-    }
-  }
-  const selected = [...groups.values()].sort((a, b) => b.ids.length - a.ids.length ||
-    (a.value < b.value ? -1 : a.value > b.value ? 1 : 0)).slice(0, 5);
-  const expected = { kind: "grouped", groupBy: "contact_reasons", totalConversations: rows.length,
-    items: selected.map((group) => ({ value: group.value, metrics: { count: group.ids.length,
-      resolution_rate: { numerator: group.resolvedIds.length, denominator: group.ids.length,
-        percentage: group.resolvedIds.length * 100 / group.ids.length },
-    } })),
-  };
+integrationTest("development: cinco motivos exactos con cantidad y porcentaje de resolución", async () => {
+  const question = "Mostrame los 5 motivos de contacto exactos más frecuentes, su cantidad y porcentaje de resolución";
+  const reasons = storedReasons();
+  // Oráculo independiente de la consulta generada: agrupa y deduplica en JavaScript.
+  const expected = [...new Set(reasons.map(({ reason }) => reason))].map((reason) => {
+    const members = reasons.filter((row) => row.reason === reason);
+    const denominator = new Set(members.map((row) => row.conversation_id)).size;
+    const numerator = new Set(members.filter((row) => row.resolution === "resuelto").map((row) => row.conversation_id)).size;
+    return { reason, count: denominator, numerator, denominator, percentage: 100 * numerator / denominator };
+  }).sort((a, b) => b.count - a.count || Buffer.compare(Buffer.from(a.reason), Buffer.from(b.reason))).slice(0, 5);
   const actual = await answerQuestion(question);
-  const diagnostics: string[] = [];
-  const calls = actual.calls.filter((call) => call.name === "queryClassifications");
-  const grouped = calls.find((call) => parseClassificationQuery(call.arguments).aggregation === "grouped");
-  if (!grouped) diagnostics.push("[HERRAMIENTA] No se ejecutó queryClassifications con aggregation=grouped.");
-  if (actual.calls.some((call) => call.name !== "queryClassifications")) {
-    diagnostics.push("[COBERTURA] Se utilizó búsqueda de candidatos para una consulta global de motivos exactos.");
+  await report("07", question, actual, expected);
+  expect(actual.calls.every((call) => call.name === "queryDatabase")).toBe(true);
+  const groups = sqlCalls(actual).find(({ result }) => result.ok && result.rows.length === 5 && result.rows.every((row) => typeof row.reason === "string"));
+  expect(groups).toBeDefined();
+  if (!groups?.result.ok) throw new Error("Falta resultado SQL con cinco motivos");
+  expect(groups.result.truncated).toBe(false);
+  for (const [index, item] of expected.entries()) {
+    const { percentage, ...counts } = item;
+    const row = groups.result.rows[index]!;
+    expect({ ...row, count: row.count ?? row.denominator }).toMatchObject(counts);
+    expect(Number(groups.result.rows[index]!.percentage)).toBeCloseTo(percentage, 1);
+    expect(actual.answer).toContain(item.reason);
   }
-  // Verifica nombres y números asociados a cada grupo sin fijar tabla/lista o redacción.
-  const text = actual.answer.replace(/\*\*|`/g, "");
-  let lastPosition = -1;
-  for (const [index, item] of expected.items.entries()) {
-    const start = text.indexOf(item.value);
-    if (start < 0) { diagnostics.push(`[GRUPO] Falta el motivo exacto «${item.value}».`); continue; }
-    if (start <= lastPosition) diagnostics.push(`[ORDEN] «${item.value}» no conserva el orden por frecuencia.`);
-    lastPosition = start;
-    const next = expected.items[index + 1];
-    const end = next ? text.indexOf(next.value, start + item.value.length) : text.length;
-    const section = text.slice(start + item.value.length, end < 0 ? text.length : end);
-    if (!new RegExp(`\\b${item.metrics.count}\\b`).test(section)) {
-      diagnostics.push(`[CANTIDAD] «${item.value}»: se esperaba ${item.metrics.count}.`);
-    }
-    const percentages = [...section.matchAll(/(\d+(?:[.,]\d+)?)\s*%/g)];
-    const correctRate = percentages.some((match) => {
-      const value = match[1]!.replace(",", ".");
-      const decimals = value.split(".")[1]?.length ?? 0;
-      const factor = 10 ** decimals;
-      return Number(value) === Math.round(item.metrics.resolution_rate.percentage * factor) / factor;
-    });
-    if (!correctRate) diagnostics.push(`[TASA] «${item.value}»: se esperaba ${item.metrics.resolution_rate.numerator}/${item.metrics.count} = ${item.metrics.resolution_rate.percentage.toFixed(2)}%, admitiendo redondeo.`);
+}, 180_000);
+
+integrationTest("development: cinco tópicos semánticos con métricas y cobertura completa", async () => {
+  const question = "Mostrame los 5 tópicos principales, su cantidad de conversaciones y porcentaje de resolución";
+  const reasons = storedReasons();
+  const allReasons = [...new Set(reasons.map(({ reason }) => reason))].sort();
+  const actual = await answerQuestion(question);
+  // El modelo devuelve su asignación por SQL: se auditan sus cuentas sin parsear ni reconstruir su consulta.
+  const calls = sqlCalls(actual);
+  const mappingIndex = calls.findLastIndex(({ result }) => result.ok && result.rows.length > 0
+    && result.rows.every((row) => typeof row.reason === "string" && typeof row.topic === "string"));
+  const mapping = mappingIndex >= 0 ? calls[mappingIndex]!.result : undefined;
+  const assigned = mapping?.ok ? mapping.rows as { reason: string; topic: string }[] : [];
+  const expected = [...new Set(assigned.map(({ topic }) => topic))].map((topic) => {
+    const values = new Set(assigned.filter((row) => row.topic === topic).map(({ reason }) => reason));
+    const members = reasons.filter((row) => values.has(row.reason));
+    const denominator = new Set(members.map(({ conversation_id }) => conversation_id)).size;
+    const numerator = new Set(members.filter((row) => row.resolution === "resuelto").map(({ conversation_id }) => conversation_id)).size;
+    return { topic, count: denominator, numerator, denominator, percentage: 100 * numerator / denominator };
+  }).sort((a, b) => b.count - a.count || Buffer.compare(Buffer.from(a.topic), Buffer.from(b.topic))).slice(0, 5);
+  await report("08", question, actual, { allReasons, assigned, groups: expected });
+  expect(actual.calls.every((call) => call.name === "queryDatabase")).toBe(true);
+  expect(mapping?.ok).toBe(true);
+  if (!mapping?.ok) throw new Error("Falta asignación reason/topic revisable");
+  expect(mapping.truncated).toBe(false);
+  expect(assigned).toHaveLength(allReasons.length);
+  expect([...new Set(assigned.map(({ reason }) => reason))].sort()).toEqual(allReasons);
+  const previouslyRead = calls.slice(0, mappingIndex).flatMap(({ result }) => result.ok ? result.rows.map((row) => row.reason) : []);
+  for (const reason of allReasons) expect(previouslyRead).toContain(reason);
+  const groups = calls.slice(mappingIndex + 1).find(({ result }) => result.ok && result.rows.length === 5
+    && result.rows.every((row) => typeof row.topic === "string" && typeof row.denominator === "number"));
+  expect(groups?.result.ok).toBe(true);
+  if (!groups?.result.ok) throw new Error("Falta resultado SQL con cinco tópicos");
+  expect(groups.result.truncated).toBe(false);
+  expect(expected).toHaveLength(5);
+  for (const [index, item] of expected.entries()) {
+    const { percentage, ...counts } = item;
+    const row = groups.result.rows[index]!;
+    // En esta pregunta, cantidad y denominador son el total de conversaciones del tópico.
+    // Aceptamos cualquiera de los dos alias sin relajar la comparación de los valores.
+    expect({ ...row, count: row.count ?? row.denominator }).toMatchObject(counts);
+    expect(Number(groups.result.rows[index]!.percentage)).toBeCloseTo(percentage, 1);
+    expect(actual.answer).toContain(item.topic);
   }
-  const reportPath = new URL("../reports/development-question-07.json", import.meta.url);
-  await mkdir(new URL("../reports/", import.meta.url), { recursive: true });
-  await Bun.write(reportPath, JSON.stringify({ question, model: process.env.OPENAI_MODEL ?? "gpt-5.6-luna",
-    ranAt: new Date().toISOString(), expected, evidence: selected, actual, diagnostics,
-    manualReview: "Verificar que explique resolución como resuelto / conversaciones del grupo, que respete los motivos exactos y que no atribuya la resolución general a cada motivo por separado. Las comprobaciones de prosa son orientativas.",
-  }, null, 2));
-  console.log(`Respuesta del modelo:\n${actual.answer}\n\nReporte: ${reportPath.pathname}`);
-  for (const diagnostic of diagnostics) console.log(`- ${diagnostic}`);
-  expect(grouped, "Debe existir una consulta grouped; ver reporte").toBeDefined();
-  const args = parseClassificationQuery(grouped!.arguments);
-  expect(args.grouping).toEqual({ groupBy: "contact_reasons",
-    metrics: expect.arrayContaining(["count", "resolution_rate"]), limit: 5 });
-  expect(args.grouping!.metrics).toHaveLength(2);
-  expect(args.population.filters).toEqual([]);
-  expect(args.matching.filters).toEqual([]);
-  expect(args.conversationIds).toBeNull();
-  expect(args.dateRange).toEqual({ from: null, toExclusive: null });
-  expect(grouped!.result, "Los grupos y sus métricas deben coincidir con el cálculo independiente en JS").toEqual(expected);
-  if (diagnostics.length) throw new Error(diagnostics.join("\n"));
 }, 180_000);
 
 function reviewRepeatedQuestionCitations(
@@ -337,30 +346,44 @@ integrationTest(
 
     expect(actual.calls[0]?.name).toBe("searchConversations");
     const retrievedIds = new Set<string>();
-    let filtered = false;
     for (const call of actual.calls) {
       if (call.name === "searchConversations") {
         const result = call.result as Awaited<ReturnType<typeof searchConversations>>;
         expect(result.coverage).toBe("retrieved_candidates");
         result.results.forEach((item) => retrievedIds.add(item.conversation_id));
       } else {
-        expect(call.name).toBe("queryClassifications");
-        const args = parseClassificationQuery(call.arguments);
-        expect(args.conversationIds).not.toBeNull();
-        for (const id of args.conversationIds!) expect(retrievedIds.has(id)).toBe(true);
-        // Tras revisar el tema, el filtro debe aplicarse a los tres candidatos válidos.
-        expect([...new Set(args.conversationIds!)].sort()).toEqual(topicIds);
-        expect([...args.population.filters, ...args.matching.filters])
-          .toEqual([{ field: "assistant_quality", value: scenario.quality }]);
-        expect(args.aggregation).toBe("count");
-        expect(args.dateRange).toEqual({ from: null, toExclusive: null });
-        expect(args.examples).toBeGreaterThanOrEqual(Math.max(1, expectedIds.length));
-        expect(call.result).toEqual({ kind: "count", count: expectedIds.length,
-          examples: expectedIds });
-        filtered = true;
+        expect(call.name).toBe("queryDatabase");
+        const args = sqlQuerySchema.parse(call.arguments);
+        const suppliedIds = [...new Set(JSON.stringify(args).match(/conv_\d+/g) ?? [])].sort();
+        for (const id of suppliedIds) expect(retrievedIds.has(id)).toBe(true);
       }
     }
-    expect(filtered).toBe(true);
+    // Una consulta auxiliar puede leer etiquetas para explicar exclusiones, y un SQL
+    // inválido puede corregirse. Evaluamos los resultados de las consultas con el filtro.
+    const queries = sqlCalls(actual).filter(({ args, result }) => result.ok
+      && JSON.stringify(args).includes(scenario.quality));
+    expect(queries.length).toBeGreaterThan(0);
+    const verifiedIds = new Set<string>();
+    for (const [index, { args, result }] of queries.entries()) {
+      const suppliedIds = [...new Set(JSON.stringify(args).match(/conv_\d+/g) ?? [])].sort();
+      if (index === 0 || suppliedIds.length === topicIds.length) {
+        expect(suppliedIds).toEqual(topicIds);
+      } else {
+        // Después de filtrar todos los candidatos pertinentes, se pueden leer solo
+        // los ejemplos que cumplieron. No exigimos reintroducir los casos excluidos.
+        for (const id of suppliedIds) expect(verifiedIds.has(id)).toBe(true);
+      }
+      if (result.ok) {
+        expect(result.truncated).toBe(false);
+        for (const row of result.rows) {
+          if (typeof row.conversation_id === "string") verifiedIds.add(row.conversation_id);
+        }
+      }
+    }
+    const actualIds = [...verifiedIds].sort();
+    expect(actualIds).toEqual(expectedIds);
+    if (!expectedIds.length) expect(queries.some(({ result }) => result.ok &&
+      (result.rows.length === 0 || result.rows.some((row) => row.count === 0)))).toBe(true);
     if (expectedIds.length) {
       for (const id of expectedIds) {
         expect(actual.answer).toContain(id);
@@ -398,7 +421,7 @@ integrationTest(
     // Esta pregunta es global: evitamos probarla por accidente sobre otra población.
     expect(rows.map((row) => row.conversation_id))
       .toEqual(development.conversations.map(({ id }) => id).sort());
-    // Oráculo independiente del constructor SQL de la herramienta.
+    // Oráculo independiente del SQL generado por el modelo.
     const population = rows.filter((row) => row.assistant_quality === "adecuada");
     const matches = population.filter((row) => row.resolution === "no_resuelto");
     const expected = {
@@ -421,16 +444,32 @@ integrationTest(
     console.log(`Reporte: ${reportPath.pathname}`);
 
     expect(actual.calls.length).toBeGreaterThan(0);
-    expect(actual.calls.every((call) => call.name === "queryClassifications")).toBe(true);
-    const call = actual.calls.find((call) => parseClassificationQuery(call.arguments).aggregation === "percentage");
-    expect(call).toBeDefined();
-    const args = parseClassificationQuery(call!.arguments);
-    expect(args.population.filters).toEqual([{ field: "assistant_quality", value: "adecuada" }]);
-    expect(args.matching.filters).toEqual([{ field: "resolution", value: "no_resuelto" }]);
-    expect(args.conversationIds).toBeNull();
-    expect(args.dateRange).toEqual({ from: null, toExclusive: null });
-    expect(args.examples).toBe(3);
-    expect(call!.result).toEqual(expected);
+    expect(actual.calls.every((call) => call.name === "queryDatabase")).toBe(true);
+    // UNION puede compartir columnas entre métricas y ejemplos (con NULL en estos).
+    // Tomamos la última métrica calculada, permitiendo que el modelo corrija una consulta.
+    const metrics = sqlRows(actual).findLast((row) => typeof row.numerator === "number"
+      && typeof row.denominator === "number" && "percentage" in row);
+    expect(metrics).toBeDefined();
+    expect(metrics!.numerator).toBe(expected.numerator);
+    expect(metrics!.denominator).toBe(expected.denominator);
+    if (expected.percentage === null) expect(metrics!.percentage).toBeNull();
+    else expect(Number(metrics!.percentage)).toBeCloseTo(expected.percentage, 1);
+    const ids = sqlRows(actual).map((row) => row.conversation_id).filter((id) => typeof id === "string");
+    // Puede recuperar más candidatos de los que muestra; todos los ejemplos finales
+    // deben estar respaldados por SQL. Su selección exacta se comprueba en la respuesta.
+    for (const id of expected.examples) expect(ids).toContain(id);
+    const evidenceDb = openDatabase(undefined, "readonly");
+    try {
+      for (const citation of actual.answer.matchAll(/\[(conv_\d+),\s*mensaje\s+(\d+)\]/gi)) {
+        const message = sqlRows(actual).find((row) => row.conversation_id === citation[1]
+          && row.message_index === Number(citation[2]) && typeof row.content === "string");
+        expect(message, `Falta el mensaje original de ${citation[0]} en las filas recibidas`).toBeDefined();
+        const original = evidenceDb.query("SELECT conversation_id, message_index, role, content FROM messages WHERE conversation_id = ? AND message_index = ?")
+          .get(citation[1]!, Number(citation[2]));
+        expect(original).not.toBeNull();
+        expect(message).toMatchObject(original!);
+      }
+    } finally { evidenceDb.close(); }
     // Comprobaciones mínimas de la prosa; el sentido completo se revisa a mano.
     const percentages = [...actual.answer.matchAll(/(\d+(?:[.,]\d+)?)\s*%/g)]
       .map((match) => Number(match[1]!.replace(",", ".")));

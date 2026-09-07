@@ -1,273 +1,108 @@
-# conversation-analysis-agent
+# Agente de análisis de conversaciones
 
-To install dependencies:
+Agente para que un equipo de producto entienda, a escala, qué pasa en las conversaciones de un bot de soporte: temas recurrentes, fallos, frustración y qué se podría mejorar.
+
+El usuario hace preguntas en lenguaje natural (y follow-ups) y el agente consulta un dataset ya analizado. No recorre las ~5.000 conversaciones en cada pregunta: primero las clasifica y las indexa; después combina **métricas sobre etiquetas** con **búsqueda en el texto**.
+
+## Cómo funciona
+
+1. **Importación.** Se leen las conversaciones del JSON, un modelo las etiqueta (resolución, repetición, calidad del asistente, motivos de contacto) y se guardan en SQLite junto con índices de texto y vectores.
+2. **Pregunta.** Un orquestador (LLM) elige herramientas:
+   - **SQL** para conteos, porcentajes, rankings y filtros sobre etiquetas ya guardadas.
+   - **Búsqueda** cuando hace falta leer mensajes (temas, frustración, errores del asistente).
+3. **Respuesta.** Debe apoyarse en evidencia (IDs de conversación y, si describe contenido, mensajes reales). La búsqueda devuelve candidatos, no el corpus entero: si piden un porcentaje global de un tema nuevo, el agente debe decir que no puede garantizarlo sin un análisis exhaustivo.
+
+La interacción es por **CLI**. Cada `bun run ask` es una pregunta; el historial entre preguntas de sesión aún no está persistido.
+
+## Stack
+
+| Pieza | Para qué |
+| --- | --- |
+| **Bun** (≥ 1.4.2) + TypeScript | Runtime y tests. No hace falta Node ni Python. |
+| **SQLite** | Una base local con conversaciones, etiquetas y búsqueda. |
+| **FTS5** | Búsqueda por palabras (tipo “passkey”). |
+| **sqlite-vec** | Búsqueda semántica (parecido de significado, no solo palabras exactas). |
+| **OpenAI** | Clasificación, embeddings y el modelo que orquesta la pregunta. |
+| **Zod** | Validar JSON de entrada y salidas estructuradas del modelo. |
+
+En macOS el SQLite del sistema no carga extensiones: `brew install sqlite`. En Apple Silicon se usa `/opt/homebrew`; en Intel, `/usr/local`. Si está en otro lado, `SQLITE_LIBRARY_PATH` apunta al `.dylib`.
+
+## Cómo correrlo
 
 ```bash
 bun install
 ```
 
-To run:
+Creá un `.env` con `OPENAI_API_KEY`. Opcional: `OPENAI_MODEL`, `OPENAI_EMBEDDING_MODEL` (por defecto `text-embedding-3-small`).
 
-```bash
-bun run index.ts
-```
+Actualizar Bun: `bun upgrade`.
 
-This project was created using `bun init` in bun v1.2.21. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
-
-## Import conversations into SQLite
-
-The project pins `sqlite-vec` to version 0.1.9. `database.ts` loads the extension
-on every connection, including read-only connections. On macOS, install SQLite
-with `brew install sqlite`: the system SQLite cannot load extensions. Before
-opening any connection, the module selects the Homebrew library automatically
-from `/opt/homebrew` (Apple Silicon) or `/usr/local` (Intel). For a custom location,
-set `SQLITE_LIBRARY_PATH` to the SQLite `.dylib` file. Other platforms use Bun's
-default SQLite library. See the [Bun extension-loading documentation](https://bun.com/reference/bun/sqlite/Database/loadExtension).
-
-Application code should open connections through `openDatabase()`. Vectors are stored in `vec0` tables; text is indexed with FTS5. The combined
-hybrid-search function returns ranked candidates with their original messages.
+### 1. Importar el dataset
 
 ```bash
 bun run data:import
 ```
 
-Requires `OPENAI_API_KEY` in the environment or a local `.env` file. Reads
-`challenge-dataset.json`, classifies conversations with the configured `OPENAI_MODEL`,
-and saves successful batches to `data/conversations.sqlite`. An optional input path
-can be passed: `bun run data:import data/development.json`.
-
-Each classification batch (10 conversations by default) is one unit of work:
-classify → build three documents per conversation in memory → generate all embeddings
-→ save originals, classifications, hashes and vectors in one SQLite transaction.
-No conversation data from the batch is saved until both API stages complete. A failure
-in classification, embeddings or persistence puts all batch IDs in `errors`; successful
-batches remain saved. When updating existing conversations, failure preserves their
-previous data. Retrying a failed batch repeats classification and embeddings.
-
-Text is built directly from the messages and classification results in memory;
-`search_documents` does not duplicate it. Tables are initialized before checking the
-cache, with no migrations or backfills. A conversation is reused only when its analysis
-hash matches and all three embeddings match the current document hashes, embedding
-model and dimensions. Incomplete or stale conversations go through the full pipeline.
-
-`document_embeddings` stores a `search_document_id` foreign key, model, dimensions,
-creation time and an integer ID. Conversation, type and content hash live only in
-`search_documents`; hash-change triggers invalidate outdated embeddings. The vector itself is stored only once, as float32 in the `vec0`
-table `document_vectors_<dimensions>`, linked by that ID. These tables use cosine
-distance and partition by model, so different embedding models are not mixed. Defaults: `OPENAI_EMBEDDING_MODEL=text-embedding-3-small`
-and 1536 dimensions. `text-embedding-3-large` is also supported (3072 by default).
-Set `OPENAI_EMBEDDING_DIMENSIONS` to request a smaller vector. Classification and
-embedding models are configured independently.
-
-Embedding requests follow the classification batch (normally 30 input documents).
-If a batch exceeds 300,000 tokens or 2048 inputs, requests are split sequentially,
-keeping all results in memory until the entire batch succeeds. Concurrent classification
-batches retain the existing concurrency setting (15 by default). API calls are outside
-SQLite transactions. The embedding SDK retries transient failures up to twice before
-reporting the whole batch as failed.
-
-Empty documents and documents exceeding 8191 tokens fail the entire batch; they are
-never silently truncated. Conversation fragmentation is not implemented yet. Request limits follow the [OpenAI embeddings API reference](https://developers.openai.com/api/reference/typescript/resources/embeddings/methods/create).
-
-The source JSON is unchanged. Conversations absent from the input remain untouched.
-The database and its WAL files are local generated files excluded from Git.
-
-Contact reasons are stored in `conversation_contact_reasons(conversation_id, reason)`.
-Its composite primary key prevents repeated reasons within a conversation; an index
-on `(reason, conversation_id)` supports queries by exact reason. `classifications`
-no longer contains `contact_reasons_json`. The model still returns an array; the batch
-save replaces that conversation's reason rows inside the same transaction as labels,
-FTS and embeddings. A failure rolls back the entire batch, including reason changes.
-The in-memory array still supplies the search document; it does not become one vector
-per reason. Reason order is not part of the relational table.
-
-There is no migration: recreate the local database before importing with this schema.
-The development evaluator and integration tests now read reasons from the new table.
-
-## Classification query tool
-
-`src/execute-question.ts` exports `queryClassificationsTool`, a strict Responses
-function definition, and `queryClassifications(input, databasePath?)`, its executor.
-The Zod schema and validation live in the same module. The executor validates
-untrusted arguments before opening SQLite; it accepts no SQL or database path from
-the model. Unsupported fields and extra properties are rejected, not silently ignored.
-
-```ts
-queryClassifications({
-  aggregation: "count",
-  conversationIds: null,
-  population: { operator: "and", filters: [] },
-  matching: {
-    operator: "and",
-    filters: [{ field: "resolution", value: "resuelto" }],
-  },
-  dateRange: { from: null, toExclusive: null },
-  ranking: null,
-  examples: 3,
-});
-```
-
-Supported aggregations are `count`, `percentage`, and `ranking`; filters are limited
-to `resolution`, `repetition`, and `assistant_quality`. Percentages use `population`
-as denominator and additionally apply `matching` for the numerator. Date bounds are
-UTC, inclusive start and exclusive end. Results cover stored classifications only;
-examples contain IDs, not original messages. Content-based conditions belong to search.
-
-`conversationIds` restricts counts, percentage denominators, rankings and examples
-to the supplied IDs (at most 1000). Use `null` for no restriction; local calls can
-also omit the field. An empty list means zero results, never the entire dataset.
-Duplicates count once; unknown or unclassified IDs do not count. This allows filtering
-IDs retrieved by `searchConversations`, but results on those candidates are not global
-totals. Example IDs remain capped at 10.
-
-The orchestrator registers this tool alongside hybrid search. `ask` uses the
-orchestration loop to choose tools and produce the final answer.
-
-## Search storage
-
-### Text search
+Lee `challenge-dataset.json` y escribe `data/conversations.sqlite` (archivo local, no va a Git). Otro archivo:
 
 ```bash
-bun run search:text "passkey" 10
+bun run data:import data/development.json
 ```
 
-`searchTextConversations({ query, limit, databasePath? })` in
-`src/search-conversations.ts` queries FTS5 without calling a model. The default limit
-is 10, with a maximum of 100 conversations. Results contain `conversation_id`,
-`matchedDocuments` (contact reasons, notes and/or conversation) and a BM25 `score`.
-Lower scores rank first; this is lexical relevance, not a probability. Each
-conversation is ranked by its best matching document. The limit applies after
-deduplication, and all matching document types of each selected conversation are kept.
+La clasificación llama a la API y puede tardar. Si un lote falla, no se guarda; al reintentar se reutiliza lo que ya está completo.
 
-Input is plain text, not FTS query syntax: words are quoted and combined with AND.
-All words must occur in a single document, in any order. Punctuation is treated as
-separators, and operators like `OR` are literal search terms. This initial version
-does not expand prefixes or synonyms, interpret natural-language instructions, apply
-classification filters or combine vector results. Prefer `passkey` over a full question.
-Queries without words/numbers or invalid limits fail validation. No matches returns
-an empty list; an absent or incompatible database reports an error and is not created
-or migrated. The CLI requires an already processed database at the default path.
-
-### Vector search
-
-```bash
-bun run search:vector "problemas para iniciar sesión sin contraseña" 10
-```
-
-`searchVectorConversations({ query, limit, databasePath?, model?, dimensions? })`
-uses the same embedding configuration as ingestion (environment defaults or explicit
-overrides). It calls the embedding API once for the query, then queries `vec0` with
-cosine distance, filtering by model and dimensions. It does not regenerate or persist
-document embeddings and opens SQLite read-only. API failures are reported as errors.
-
-Results contain a unique `conversation_id`, its best `distance` (lower is closer),
-and `matchedDocuments` with types and distances of retrieved candidate documents.
-The implementation retrieves up to three times the requested limit before grouping:
-the current schema permits at most three documents per conversation and configuration.
-If fragmentation is introduced, this bound must be revised. Documents outside the
-retrieved candidate set are not listed. Equal-distance candidates at the cutoff may tie.
-
-These are nearest candidates, not verified matches: no relevance threshold is applied,
-and distances are not confidence scores. Textual and vector scores use different scales; hybrid search combines their ranks.
-A missing dimension-specific table reports an error; no compatible indexed vectors
-returns an empty list without an API call. The query model must match the model used
-to index documents. See [sqlite-vec KNN queries](https://alexgarcia.xyz/sqlite-vec/features/knn.html).
-
-`search_documents` gives each document a stable integer ID. `search_documents_fts`
-is an FTS5 contentless-delete index over contact reasons, notes and message content,
-with the same ID as its rowid. It indexes words without retaining another copy of
-the source text. The `unicode61` tokenizer handles case and diacritics; it does not
-provide semantic synonyms. Retrieve text and evidence from the original tables.
-
-Saving a batch updates its FTS rows and vector rows inside the same transaction as
-messages and classifications. Replacing a document's content invalidates all its
-previous embeddings (including other model configurations). Deleting search-document
-metadata deletes its FTS entry and cascades to embedding metadata; triggers remove
-the corresponding vectors. Repeating a save does not duplicate index rows.
-
-`vec0` requires fixed dimensions, so `database.ts` creates a table for each dimension
-used, within the successful batch transaction. No vector JSON copy is kept in SQLite.
-This schema is for a fresh database; existing databases are not migrated or rebuilt.
-FTS5 contentless-delete requires SQLite 3.43 or newer. See [SQLite FTS5](https://www.sqlite.org/fts5.html#contentless_delete_tables)
-and [sqlite-vec vec0](https://alexgarcia.xyz/sqlite-vec/features/vec0.html).
-
-### Hybrid search and model context
-
-`src/search-conversations.ts` exports `searchConversationsTool` (strict Responses
-function definition) and `executeSearchConversationsTool(input, configuration?)`.
-The model supplies exactly `semanticQuery`, `keywords`, and `limit`; use `keywords: []`
-for vector-only retrieval. The executor rejects extra arguments before searching.
-Database path, embedding model/dimensions and candidate limit are application configuration,
-not model arguments. The existing CLI and direct function keep their optional defaults.
-The tool returns candidates with original messages and explicitly limited coverage;
-the model must verify relevance. `orchestrate-question.ts` registers and executes both tools.
-
-```bash
-bun run search:hybrid "problemas para configurar o usar passkeys" 5 passkey passkeys
-```
-
-`searchConversations({ semanticQuery, keywords?, limit, candidateLimit?, databasePath?, model?, dimensions? })`
-combines FTS5 and vector retrieval in `src/search-conversations.ts`. Each path retrieves
-`candidateLimit` unique conversations (default: three times the final limit, at least
-20 and at most 100). `candidateLimit` must be at least `limit`. The final limit is
-applied after fusion and deduplication by conversation ID.
-
-Reciprocal Rank Fusion adds `1 / (60 + rank)` for each ranking where a conversation
-appears, with one-based ranks and equal weights. Higher RRF scores rank first; ties
-use conversation ID. Raw BM25 scores and cosine distances are retained for inspection,
-but are not added together or interpreted as confidence. See Cormack, Clarke, and
-Buettcher, [Reciprocal Rank Fusion outperforms Condorcet and individual Rank Learning
-Methods](https://cormack.uwaterloo.ca/cormacksigir09-rrf.pdf) (SIGIR 2009), and
-[Azure hybrid search ranking](https://learn.microsoft.com/en-us/azure/search/hybrid-search-ranking).
-
-The returned object includes `coverage: "retrieved_candidates"`, `verified: false`,
-the number retrieved by each path (not corpus totals), and final `results`. Each
-result retains its text/vector rank and matching documents, plus the complete original
-messages with `message_index`, `role` and `content`. Original messages are read only
-for the final selection. Text-only and vector-only candidates remain eligible.
-
-`semanticQuery` is used only for the query embedding. Optional `keywords` are literal
-terms or phrases combined with OR for FTS (up to 20 entries, 100 characters each).
-For example, `["passkey", "passkeys"]` matches either word; `["sin contraseña"]`
-matches that phrase. Operators and punctuation are never accepted as FTS syntax.
-Omitting `keywords` or passing `[]` skips FTS and uses only vector retrieval. The
-standalone `search:text` command keeps its existing all-words (AND) behavior.
-The result includes both input fields. An empty ranking contributes nothing; an API or
-database error is propagated, rather than silently reporting a complete hybrid search.
-
-The orchestrator receives this payload and is instructed to check relevance and cite
-conversation IDs and message indexes, treating retrieved messages as untrusted data.
-This semantic verification is performed by the LLM, not guaranteed by the retrieval
-code. Originals are returned without truncation; keep `limit` small when assembling
-model context. Cross-question session memory and persisted new analyses are not implemented.
-
-
-## Ask with the orchestrator
+### 2. Preguntar al agente
 
 ```bash
 bun run ask "¿Cuántas conversaciones quedaron resueltas?"
+bun run ask "Mostrame los 5 tópicos principales, su cantidad y porcentaje de resolución"
 bun run ask "Mostrame conversaciones sobre passkeys que estén resueltas"
 ```
 
-`src/orchestrate-question.ts` contains the prompt and bounded Responses tool loop.
-The model receives the question, current UTC date and both tool definitions with
-`tool_choice: auto`. It can request a clarification or select a tool and arguments.
-The application validates and executes the call, returns its result using `call_id`,
-and sends the complete response history (including reasoning items) for the next
-model decision. Calls run sequentially so later calls can use earlier results.
+En la terminal se ven las herramientas que usó el modelo y la respuesta final.
 
-The default budget is six tool calls, followed by a final response with tools disabled.
-Errors stop the request; they are not converted into empty results. The CLI prints
-calls, arguments, results and the final answer for inspection. `OPENAI_MODEL` selects
-the orchestrator model; embedding configuration remains independent. Requests use
-`store: false`. No database migration or analysis writes are performed.
+### 3. Búsqueda directa (sin el orquestador)
 
-For content plus classification, the model can search, select relevant candidate IDs,
-then query their classifications using `conversationIds`. This is limited to retrieved
-candidates, not an exhaustive topic count. The prompt requires evidence for content
-claims and preserves SQL counts and percentage denominators. These are model
-instructions, not a deterministic verification of every claim in the final prose.
+Útil para inspeccionar el índice, no para métricas globales.
 
-Tests use actual temporary SQLite/vec indexes and simulated model and embedding
-responses to verify routing, chained calls, error handling and the call budget.
-They do not measure how reliably a live model chooses tools or verifies relevance.
+```bash
+bun run search:text "passkey" 10
+bun run search:vector "problemas para iniciar sesión sin contraseña" 10
+bun run search:hybrid "problemas para configurar o usar passkeys" 5 passkey passkeys
+```
+
+- **Texto:** palabras literales (todas deben aparecer).
+- **Vector:** necesita API (embedding de la consulta).
+- **Híbrido:** mezcla ambos. Palabras clave opcionales al final; sin ellas, solo vector.
+
+### 4. Tests
+
+```bash
+bun test
+bun run typecheck
+bun run test:integration
+```
+
+Los tests normales no gastan API. Los de integración sí (`OPENAI_API_KEY`) y usan la base de development en solo lectura. Un caso concreto:
+
+```bash
+bun run test:integration --test-name-pattern 'moneda ya indicada'
+```
+
+## Decisiones de diseño
+
+**Clasificar una vez, consultar muchas.** Recorrer 5.000 hilos con un LLM en cada pregunta no escala ni es comparable entre corridas. En la importación se guardan etiquetas (resolución, calidad, motivos) y también embeddings de cada conversación. En cada pregunta el modelo no relee el corpus: elige entre dos herramientas.
+
+**Dos herramientas.**
+- **Búsqueda** (híbrida): combina texto (palabras exactas) y vectores (parecido de significado). Sirve para temas, fallos o palabras claves que hay que ver en los mensajes. Devuelve candidatos; el modelo debe leerlos antes de afirmar. Un acotado número de resultados no es un porcentaje del dataset.
+- **SQL:** el modelo escribe la query; la app la ejecuta en solo lectura, con esquema acotado y límites de tiempo y filas. Sirve para conteos, tasas y filtros sobre etiquetas ya guardadas. 
+
+**Motivos exactos vs tópicos.** Los motivos se guardan tal cual. Si piden “tópicos”, el modelo lista los motivos, propone un mapeo revisable y recién ahí calcula métricas. Agrupar labels no es releer todo el corpus.
+
+## Trade-offs
+
+| Elegimos | En lugar de | Por qué |
+| --- | --- | --- |
+| SQLite local + CLI | App web / Elasticsearch / Postgres | Menos infra para el challenge; una máquina alcanza para este tamaño. |
+| Etiquetas + búsqueda | Solo RAG en cada pregunta | Métricas estables y baratas; RAG solo donde hace falta el texto. |
+| Candidatos, no exhaustivo | Clasificar on-the-fly todo el corpus | Latencia y costo; se declara el límite de cobertura. |
