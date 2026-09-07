@@ -4,6 +4,12 @@ import { z } from "zod";
 import { queryDatabase, queryDatabaseTool } from "./execute-question";
 import { executeSearchConversationsTool, searchConversationsTool } from "./search-conversations";
 import type { EmbeddingOptions } from "./embed-documents";
+import {
+  appendSessionEvents,
+  createSession,
+  getSessionHistory,
+  historyToResponseInput,
+} from "./session";
 
 const instructions = `Sos el orquestador de consultas sobre conversaciones almacenadas.
 Respondé en español, breve y con evidencia obtenida de las herramientas. Tu tarea es
@@ -80,6 +86,25 @@ hechos comprobados, incertidumbre y límites de cobertura.
   Si se pide cobertura global nueva, explicá que requiere un análisis exhaustivo que estas
   herramientas todavía no ejecutan. No prometas guardar análisis ni procesar todo el dataset.
 - Una búsqueda vacía o sin candidatos pertinentes no demuestra ausencia global.
+
+## Continuidad y preguntas de seguimiento (multi-turno)
+- Las preguntas dentro de una sesión pueden continuar o refinar el análisis anterior.
+  Interpretá referencias y pronombres («esos», «los anteriores», «ahora solo...», «comparalos»)
+  en relación al subconjunto y evidencia obtenidos en los turnos previos.
+- Si el cliente refina el conjunto previo (ej. «ahora solo los no resueltos»), conservá
+  los IDs identificados en la respuesta anterior y filtralos con SQL usando
+  WHERE conversation_id IN (?, ...) AND <nueva_condicion>. No inventes IDs ni vuelvas a buscar
+  en todo el dataset cuando se pide restringir el grupo ya establecido.
+- Si el filtro de refinamiento deja el conjunto vacío, conservalo (WHERE 0) e informalo con claridad:
+  explicá que ninguna de las conversaciones del grupo cumple la nueva condición; nunca quites
+  el filtro ni sustituyas por otros casos.
+- Si la pregunta pide analizar el subconjunto previo (ej. «¿qué tienen en común?», «¿por qué falló?»),
+  leé los mensajes originales de esas conversaciones para sustentar tus observaciones y citas
+  [conversation_id, mensaje N], sin extrapolar al resto del dataset.
+- Si el cliente cambia de tema o formula una consulta independiente, no arrastres filtros ni IDs
+  de la pregunta previa: tratala como una consulta nueva sobre el dataset completo.
+- Reutilizá los resultados de herramientas ya presentes en el historial cuando alcancen para responder;
+  consultá nuevas herramientas solo si faltan datos o mensajes.
 
 ## Preguntas sobre datos ya aportados
 La unidad de evaluación es cada dato solicitado por el asistente, no la conversación entera.
@@ -163,13 +188,25 @@ async function executeTool(name: string, args: unknown, options: Options) {
   }
 }
 
-export async function answerQuestion(question: string, options: Options = {}) {
+export async function answerQuestion(
+  sessionId: string,
+  question: string,
+  options: Options = {}
+) {
+  z.string().min(1).parse(sessionId);
+
   const text = z.string().trim().min(1).max(10_000).parse(question);
   const maxToolCalls = z.number().int().min(1).max(10).parse(options.maxToolCalls ?? 6);
   const respond = options.respond ?? createResponder();
-  const input: ResponseInput = [{ role: "user", content: JSON.stringify({
-    question: text, currentDateUTC: new Date().toISOString().slice(0, 10),
-  }) }];
+
+  // Guardar la nueva pregunta del usuario en el historial de la sesión
+  appendSessionEvents(sessionId, [
+    { type: "user_question", payload: { question: text } },
+  ], { databasePath: options.databasePath });
+
+  // Recuperar el historial ordenado y convertirlo en el input estructurado para el modelo
+  const history = getSessionHistory(sessionId, { databasePath: options.databasePath });
+  const input: ResponseInput = historyToResponseInput(history);
   const calls: ToolCall[] = [];
 
   // Una herramienta por turno permite usar su resultado en la siguiente decisión.
@@ -189,8 +226,13 @@ export async function answerQuestion(question: string, options: Options = {}) {
     if (response.status !== "completed") throw new Error("El modelo no completó la respuesta.");
     const requested = response.output.filter((item) => item.type === "function_call");
     if (!requested.length) {
-      if (!response.output_text.trim()) throw new Error("El modelo no devolvió una respuesta final.");
-      return { answer: response.output_text.trim(), calls };
+      const answer = response.output_text.trim();
+      if (!answer) throw new Error("El modelo no devolvió una respuesta final.");
+      // Guardar la respuesta final del asistente en el historial de la sesión
+      appendSessionEvents(sessionId, [
+        { type: "assistant_message", payload: { content: answer } },
+      ], { databasePath: options.databasePath });
+      return { answer, calls };
     }
     if (requested.length !== 1 || calls.length >= maxToolCalls) {
       throw new Error("El modelo excedió el límite de llamadas permitido.");
@@ -200,6 +242,13 @@ export async function answerQuestion(question: string, options: Options = {}) {
     // SQL inválido vuelve como ok=false para que el modelo lo corrija; no simula resultados vacíos.
     const result = await executeTool(call.name, args, options);
     calls.push({ name: call.name, arguments: args, result });
+
+    // Guardar llamada a herramienta y su resultado juntos de forma atómica en la sesión
+    appendSessionEvents(sessionId, [
+      { type: "tool_call", payload: { call_id: call.call_id, name: call.name, arguments: args } },
+      { type: "tool_result", payload: { call_id: call.call_id, result } },
+    ], { databasePath: options.databasePath });
+
     for (const item of response.output) {
       if (item.type !== "reasoning" && item.type !== "message" && item.type !== "function_call") {
         throw new Error(`Tipo de respuesta inesperado: ${item.type}`);

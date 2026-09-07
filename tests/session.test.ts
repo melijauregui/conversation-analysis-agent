@@ -8,6 +8,7 @@ import {
   createSession,
   getSession,
   getSessionHistory,
+  historyToResponseInput,
   type SessionEventInput,
 } from "../src/session";
 
@@ -201,9 +202,8 @@ test("garantiza atomicidad transaccional con rollback completo ante fallos", () 
     // Intentar insertar un lote donde el segundo evento tiene un tipo no soportado o inválido
     const invalidBatch = [
       { type: "assistant_message", payload: { content: "Respuesta parcial que no debería persistir" } },
-      // @ts-expect-error probando evento con tipo inválido en runtime
       { type: "tipo_inexistente", payload: { algo: 123 } },
-    ] as SessionEventInput[];
+    ] as unknown as SessionEventInput[];
 
     expect(() => {
       appendSessionEvents(session.id, invalidBatch, { databasePath });
@@ -281,3 +281,114 @@ test("persiste datos de sesion al cerrar la conexion y reabrirla en modo existin
     rmSync(directory, { recursive: true, force: true });
   }
 });
+
+test("historyToResponseInput mapea fielmente preguntas, llamadas a herramientas y respuestas", () => {
+  const history: SessionEventInput[] = [
+    { type: "user_question", payload: { question: "¿Cuántos usuarios se quejaron?" } },
+    {
+      type: "tool_call",
+      payload: {
+        call_id: "call_1",
+        name: "queryDatabase",
+        arguments: { sql: "SELECT COUNT(*) FROM classifications WHERE repetition = 'presente'", parameters: [] },
+      },
+    },
+    {
+      type: "tool_result",
+      payload: {
+        call_id: "call_1",
+        result: { rows: [{ count: 15 }], ok: true },
+      },
+    },
+    {
+      type: "assistant_message",
+      payload: { content: "Hubo 15 usuarios que reiteraron su problema." },
+    },
+  ];
+
+  const responseInput = historyToResponseInput(history, { currentDateUTC: "2026-09-06" });
+
+  expect(responseInput).toHaveLength(4);
+
+  // 1. Mensaje de usuario
+  expect(responseInput[0]).toEqual({
+    role: "user",
+    content: JSON.stringify({ question: "¿Cuántos usuarios se quejaron?", currentDateUTC: "2026-09-06" }),
+  });
+
+  // 2. Llamada a herramienta
+  expect(responseInput[1]).toEqual({
+    type: "function_call",
+    call_id: "call_1",
+    name: "queryDatabase",
+    arguments: JSON.stringify({ sql: "SELECT COUNT(*) FROM classifications WHERE repetition = 'presente'", parameters: [] }),
+  });
+
+  // 3. Resultado de herramienta
+  expect(responseInput[2]).toEqual({
+    type: "function_call_output",
+    call_id: "call_1",
+    output: JSON.stringify({ rows: [{ count: 15 }], ok: true }),
+  });
+
+  // 4. Respuesta del asistente
+  expect(responseInput[3]).toEqual({
+    role: "assistant",
+    content: "Hubo 15 usuarios que reiteraron su problema.",
+  });
+});
+
+test("historyToResponseInput descarta llamadas huerfanas sin resultado y resultados sin llamada previa", () => {
+  const historyWithOrphans: SessionEventInput[] = [
+    { type: "user_question", payload: { question: "Primera pregunta" } },
+    // Llamada completada con éxito
+    {
+      type: "tool_call",
+      payload: { call_id: "call_ok", name: "toolOk", arguments: { a: 1 } },
+    },
+    {
+      type: "tool_result",
+      payload: { call_id: "call_ok", result: { ok: true } },
+    },
+    // Llamada huérfana (el proceso falló o se interrumpió y nunca se guardó el resultado)
+    {
+      type: "tool_call",
+      payload: { call_id: "call_huerfano", name: "toolFalla", arguments: { b: 2 } },
+    },
+    // Resultado huérfano sin llamada previa correspondiente
+    {
+      type: "tool_result",
+      payload: { call_id: "call_inexistente", result: { error: "sin llamada previa" } },
+    },
+    {
+      type: "user_question",
+      payload: { question: "Segunda pregunta después de la falla" },
+    },
+  ];
+
+  const responseInput = historyToResponseInput(historyWithOrphans, { currentDateUTC: "2026-09-06" });
+
+  // Deben conservarse las 2 preguntas y el par exitoso (call_ok), descartando call_huerfano y call_inexistente
+  expect(responseInput).toHaveLength(4);
+
+  expect(responseInput[0]).toMatchObject({ role: "user" });
+  expect(responseInput[1]).toEqual({
+    type: "function_call",
+    call_id: "call_ok",
+    name: "toolOk",
+    arguments: JSON.stringify({ a: 1 }),
+  });
+  expect(responseInput[2]).toEqual({
+    type: "function_call_output",
+    call_id: "call_ok",
+    output: JSON.stringify({ ok: true }),
+  });
+  expect(responseInput[3]).toMatchObject({ role: "user" });
+
+  // Comprobar que no hay ningún item con call_id huérfano
+  const allCallIds = responseInput.map((item) => ("call_id" in item ? item.call_id : null)).filter(Boolean);
+  expect(allCallIds).toEqual(["call_ok", "call_ok"]);
+  expect(allCallIds).not.toContain("call_huerfano");
+  expect(allCallIds).not.toContain("call_inexistente");
+});
+

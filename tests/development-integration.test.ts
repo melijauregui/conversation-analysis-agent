@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 import { mkdir } from "node:fs/promises";
 import { openDatabase } from "../src/database";
 import { answerQuestion } from "../src/orchestrate-question";
+import { createSession } from "../src/session";
 import { sqlQuerySchema } from "../src/execute-question";
 import type { SqlResult } from "../src/sql-policy";
 import { searchConversationsSchema, type searchConversations } from "../src/search-conversations";
@@ -55,7 +56,7 @@ integrationTest("development: cinco motivos exactos con cantidad y porcentaje de
     const numerator = new Set(members.filter((row) => row.resolution === "resuelto").map((row) => row.conversation_id)).size;
     return { reason, count: denominator, numerator, denominator, percentage: 100 * numerator / denominator };
   }).sort((a, b) => b.count - a.count || Buffer.compare(Buffer.from(a.reason), Buffer.from(b.reason))).slice(0, 5);
-  const actual = await answerQuestion(question);
+  const actual = await answerQuestion(createSession().id, question);
   await report("07", question, actual, expected);
   expect(actual.calls.every((call) => call.name === "queryDatabase")).toBe(true);
   const groups = sqlCalls(actual).find(({ result }) => result.ok && result.rows.length === 5 && result.rows.every((row) => typeof row.reason === "string"));
@@ -75,7 +76,7 @@ integrationTest("development: cinco tópicos semánticos con métricas y cobertu
   const question = "Mostrame los 5 tópicos principales, su cantidad de conversaciones y porcentaje de resolución";
   const reasons = storedReasons();
   const allReasons = [...new Set(reasons.map(({ reason }) => reason))].sort();
-  const actual = await answerQuestion(question);
+  const actual = await answerQuestion(createSession().id, question);
   // El modelo devuelve su asignación por SQL: se auditan sus cuentas sin parsear ni reconstruir su consulta.
   const calls = sqlCalls(actual);
   const mappingIndex = calls.findLastIndex(({ result }) => result.ok && result.rows.length > 0
@@ -211,7 +212,7 @@ integrationTest(
       }
     } finally { db.close(); }
 
-    const actual = await answerQuestion(question);
+    const actual = await answerQuestion(createSession().id, question);
     const searches = actual.calls.filter((call) => call.name === "searchConversations");
     const retrieved = searches.flatMap((call) =>
       (call.result as Awaited<ReturnType<typeof searchConversations>>).results);
@@ -260,7 +261,7 @@ integrationTest(
         .all(id)).toEqual(reference.messages);
     } finally { db.close(); }
 
-    const actual = await answerQuestion(question);
+    const actual = await answerQuestion(createSession().id, question);
     const retrieved = actual.calls.filter((call) => call.name === "searchConversations")
       .flatMap((call) => (call.result as Awaited<ReturnType<typeof searchConversations>>).results);
     const citations = [...actual.answer.matchAll(/\[(conv_\d+),\s*mensaje\s+(\d+)\]/gi)]
@@ -331,7 +332,7 @@ integrationTest(
     // Las etiquetas pueden cambiar al reclasificar; el oráculo usa la BDD actual.
     const expectedIds = expectedQuality.filter((row) => row.assistant_quality === scenario.quality)
       .map((row) => row.conversation_id);
-    const actual = await answerQuestion(question);
+    const actual = await answerQuestion(createSession().id, question);
     const reportPath = new URL(`../reports/development-question-${scenario.reportNumber}.json`, import.meta.url);
     await mkdir(new URL("../reports/", import.meta.url), { recursive: true });
     await Bun.write(reportPath, JSON.stringify({
@@ -429,7 +430,7 @@ integrationTest(
       percentage: population.length ? (matches.length / population.length) * 100 : null,
       examples: matches.slice(0, 3).map((row) => row.conversation_id),
     };
-    const actual = await answerQuestion(question);
+    const actual = await answerQuestion(createSession().id, question);
     const report = {
       question, model: process.env.OPENAI_MODEL ?? "gpt-5.6-luna", ranAt: new Date().toISOString(),
       scope: "stored_development_classifications", expected,
@@ -520,7 +521,7 @@ integrationTest(
     } finally { db.close(); }
 
     // Sin mocks: Responses, embeddings de consulta, FTS5, sqlite-vec y mensajes reales.
-    const actual = await answerQuestion(question);
+    const actual = await answerQuestion(createSession().id, question);
     const reportPath = new URL("../reports/development-question-02.json", import.meta.url);
     await mkdir(new URL("../reports/", import.meta.url), { recursive: true });
     await Bun.write(reportPath, JSON.stringify({

@@ -1,4 +1,5 @@
 import { answerQuestion } from "../src/orchestrate-question";
+import { createSession } from "../src/session";
 
 // Cambiá este texto para probar otra pregunta.
 const question =
@@ -10,8 +11,9 @@ const question =
 // ¿Cuántas conversaciones muestran frustración? → debe explicar la falta de cobertura global.
 
 try {
-  const { calls, answer } = await answerQuestion(question);
-  console.log(JSON.stringify({ question, calls }, null, 2));
+  const session = createSession();
+  const { calls, answer } = await answerQuestion(session.id, question);
+  console.log(JSON.stringify({ sessionId: session.id, question, calls }, null, 2));
   console.log(answer);
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error));

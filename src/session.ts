@@ -1,4 +1,5 @@
 import { Database } from "bun:sqlite";
+import type { ResponseInput } from "openai/resources/responses/responses";
 import { z } from "zod";
 import { defaultDatabasePath, openDatabase } from "./database";
 
@@ -226,3 +227,40 @@ export function getSessionHistory(
     if (shouldClose) db.close();
   }
 }
+
+//1. OpenAI exige un array de objetos tipados, no un string
+//2. Descarte de llamadas huérfanas y resultados huérfanos
+export function historyToResponseInput(
+  history: (SessionEvent | SessionEventInput)[],
+  options?: { currentDateUTC?: string }
+): ResponseInput {
+  const calls = new Set(history.filter((e) => e.type === "tool_call").map((e) => e.payload.call_id));
+  const results = new Set(history.filter((e) => e.type === "tool_result").map((e) => e.payload.call_id));
+  const validCallIds = new Set([...calls].filter((id) => results.has(id)));
+  const items: ResponseInput = [];
+
+  for (const e of history) {
+    if (e.type === "user_question") {
+      const date = ("createdAt" in e && e.createdAt?.slice(0, 10)) || options?.currentDateUTC || new Date().toISOString().slice(0, 10);
+      items.push({ role: "user", content: JSON.stringify({ question: e.payload.question, currentDateUTC: date }) });
+    } else if (e.type === "tool_call" && validCallIds.has(e.payload.call_id)) {
+      items.push({
+        type: "function_call",
+        call_id: e.payload.call_id,
+        name: e.payload.name,
+        arguments: typeof e.payload.arguments === "string" ? e.payload.arguments : JSON.stringify(e.payload.arguments),
+      });
+    } else if (e.type === "tool_result" && validCallIds.has(e.payload.call_id)) {
+      items.push({
+        type: "function_call_output",
+        call_id: e.payload.call_id,
+        output: typeof e.payload.result === "string" ? e.payload.result : JSON.stringify(e.payload.result),
+      });
+    } else if (e.type === "assistant_message") {
+      items.push({ role: "assistant", content: e.payload.content });
+    }
+  }
+
+  return items;
+}
+
