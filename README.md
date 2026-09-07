@@ -97,6 +97,8 @@ bun run test:integration --test-name-pattern 'moneda ya indicada'
 - **Búsqueda** (híbrida): combina texto (palabras exactas) y vectores (parecido de significado). Sirve para temas, fallos o palabras claves que hay que ver en los mensajes. Devuelve candidatos; el modelo debe leerlos antes de afirmar. Un acotado número de resultados no es un porcentaje del dataset.
 - **SQL:** el modelo escribe la query; la app la ejecuta en solo lectura, con esquema acotado y límites de tiempo y filas. Sirve para conteos, tasas y filtros sobre etiquetas ya guardadas. 
 
+**SQL en un proceso separado.** Una query generada por el modelo puede ser válida y de solo lectura, pero muy costosa. Como SQLite se ejecuta de forma sincrónica, separarla permite mantener disponible el proceso principal y terminar el proceso SQL si supera los 5 segundos; un temporizador en el mismo proceso no podría interrumpir una consulta bloqueante. El costo es crear un proceso y abrir una conexión por llamada.
+
 **Motivos exactos vs tópicos.** Los motivos se guardan tal cual. Si piden “tópicos”, el modelo lista los motivos, propone un mapeo revisable y recién ahí calcula métricas. Agrupar labels no es releer todo el corpus.
 
 ## Trade-offs
