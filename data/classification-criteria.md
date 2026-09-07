@@ -1,6 +1,6 @@
 # Criterios de clasificación — fase 0
 
-Estos criterios se aplican a las conversaciones completas de desarrollo y testing. Las etiquetas iniciales son borradores del asistente y requieren revisión humana.
+Estos criterios se aplican a conversaciones de soporte completas, tanto en la ingesta como en las evaluaciones de desarrollo y testing. Las etiquetas iniciales son borradores del asistente y requieren revisión humana.
 
 ## Resolución
 
@@ -12,9 +12,15 @@ Agrupar preguntas de diagnóstico y posibles soluciones del mismo problema como 
 
 Para cada pedido, distinguir:
 
-- **Resuelto:** una consulta informativa recibe una respuesta clara que la atiende, el usuario confirma pertinentemente el éxito, o acepta con conformidad la gestión/aprobación/inicio de un trámite. Una baja gestionada para fin de mes no queda pendiente solo por su fecha de efecto.
-- **Pendiente o sin responder:** hay evidencia de que el problema sigue, una derivación a otro equipo, un aplazamiento sin gestión, abandono explícito sin solución o un pedido que nunca recibió una respuesta que lo atendiera.
+- **Resuelto:** una consulta informativa recibe una respuesta clara que la atiende, el usuario confirma pertinentemente el éxito, o acepta con conformidad una gestión del pedido comunicada como realizada, aprobada, programada o puesta en marcha. Una fecha de efecto futura no deja pendiente por sí sola una gestión ya aceptada. Distinguir esa gestión de iniciar una investigación o derivar el caso para que otro equipo lo evalúe.
+- **Pendiente o sin responder:** hay evidencia de que el problema sigue, una derivación que deja el pedido original a cargo de otro equipo, un aplazamiento sin gestión, abandono explícito sin solución o un pedido que nunca recibió una respuesta que lo atendiera.
 - **Incierto:** hubo una propuesta o respuesta, pero falta evidencia del resultado, la confirmación se refiere ambiguamente a otra acción o hay señales contradictorias sobre ese mismo resultado. El silencio y un «gracias» aislado no demuestran éxito ni fracaso.
+
+### Distinguir gestión y derivación
+
+Evaluar el resultado del pedido original. Aceptar una derivación, abrir un ticket para investigación o comprometerse a enviar información no demuestra que ese pedido esté resuelto. Si luego hay evidencia de su resolución, tenerla en cuenta. Si el usuario solo solicitó un canal de atención o una derivación, proporcionar ese canal o gestionar esa derivación sí puede atender su pedido.
+
+Ejemplo general: ante «Necesito corregir mi nombre», «voy a escribir al área correspondiente» deja la corrección pendiente; «ya aparece mi nombre corregido» confirma el resultado.
 
 ### Interpretar las confirmaciones
 
@@ -66,7 +72,20 @@ No contar datos nuevos, cortesías ni recurrencia del problema («me pasó varia
 
 ## Motivos de contacto
 
-`contact_reasons` contiene una o más frases breves sobre los objetivos del usuario. No hay una taxonomía cerrada. Incluir pedidos adicionales sustantivos; las preguntas de diagnóstico del mismo objetivo no son motivos independientes.
+`contact_reasons` contiene una o más frases breves sobre las necesidades o los objetivos expresados por el usuario. No hay una taxonomía cerrada. Interpretar el significado de toda la conversación, sin asignar motivos por palabras aisladas.
+
+- Sustentar cada motivo con un mensaje del usuario que plantee la necesidad, aunque lo haga como descripción de un problema y no como pedido explícito. Usar las respuestas del asistente como contexto, sin atribuir al usuario objetivos que solo introduce el asistente.
+- Incluir los pedidos adicionales sustantivos, también si aparecen al final o quedan sin responder. Mantener separados objetivos independientes y unificar reformulaciones del mismo pedido.
+- Tratar síntomas, códigos de error, datos de contexto, preguntas de diagnóstico y posibles soluciones del mismo problema como parte de ese motivo. Solo separarlos si el usuario plantea otra necesidad independiente.
+- No deducir un nuevo motivo de una confirmación aislada o del resultado de una acción intermedia. Vincular cada confirmación con el pedido al que responde.
+- Describir qué busca el usuario; conservar diferencias entre consultar disponibilidad, pedir instrucciones y reportar un fallo. No agregar causas, síntomas ni resultados que los mensajes no sustenten. Si el objetivo no puede determinarse, indicarlo sin inventarlo.
+
+Ejemplos generales:
+
+- «No se guardan mis preferencias. ¿Pruebo reiniciando?» → un motivo: resolver el guardado de preferencias.
+- «Quiero cambiar el idioma. También, ¿cómo activo los avisos?» → dos motivos: cambiar el idioma y consultar cómo activar los avisos.
+
+En `notes`, vincular brevemente cada motivo con sus mensajes de evidencia. Las referencias deben permitir comprobar el objetivo extraído; no reemplazan su descripción en `contact_reasons`.
 
 ## Cómo revisar los archivos
 

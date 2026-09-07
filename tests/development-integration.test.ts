@@ -116,6 +116,74 @@ integrationTest("development: cinco tópicos semánticos con métricas y cobertu
   }
 }, 180_000);
 
+integrationTest("development: razones más comunes agrupa variantes por significado por defecto", async () => {
+  if (!process.env.OPENAI_API_KEY) throw new Error("Falta OPENAI_API_KEY para el test de integración.");
+  // No pide tópicos ni agrupación: reproduce la consulta que antes devolvía motivos literales.
+  const question = "cuales son las razones mas comunes por la que los usuarios contactan soporte?";
+  const db = openDatabase(undefined, "readonly");
+  let reasons: { conversation_id: string; reason: string }[];
+  try {
+    reasons = db.query<typeof reasons[number], []>(
+      "SELECT conversation_id, reason FROM conversation_contact_reasons ORDER BY conversation_id, reason",
+    ).all();
+  } finally { db.close(); }
+  const development: { conversations: { id: string }[] } = await Bun.file(
+    new URL("../data/development.json", import.meta.url),
+  ).json();
+  expect([...new Set(reasons.map(({ conversation_id }) => conversation_id))].sort())
+    .toEqual(development.conversations.map(({ id }) => id).sort());
+  const allReasons = [...new Set(reasons.map(({ reason }) => reason))].sort();
+  const equivalentReasons = [
+    ["Aprender a exportar los datos", "Consultar cómo exportar los datos", "Exportar los datos"],
+    ["Consultar si existe una aplicación para Android", "Consultar si existe una app para Android"],
+  ];
+  for (const variants of equivalentReasons) {
+    for (const reason of variants) expect(allReasons).toContain(reason);
+  }
+
+  const actual = await answerQuestion(createSession().id, question);
+  const calls = sqlCalls(actual);
+  const mappingIndex = calls.findLastIndex(({ result }) => result.ok && result.rows.length > 0
+    && result.rows.every((row) => typeof row.reason === "string" && typeof row.topic === "string"));
+  const mapping = calls[mappingIndex]?.result;
+  const assigned = mapping?.ok ? mapping.rows as { reason: string; topic: string }[] : [];
+  // Cuenta en JS sobre el mapping recibido, sin ejecutar de nuevo el SQL del modelo.
+  const expected = [...new Set(assigned.map(({ topic }) => topic))].map((topic) => {
+    const members = new Set(assigned.filter((row) => row.topic === topic).map(({ reason }) => reason));
+    return { topic, count: new Set(reasons.filter(({ reason }) => members.has(reason))
+      .map(({ conversation_id }) => conversation_id)).size };
+  }).sort((a, b) => b.count - a.count || Buffer.compare(Buffer.from(a.topic), Buffer.from(b.topic)));
+  await report("11", question, actual, {
+    allReasons, equivalentReasons, assigned, groups: expected,
+    manualReview: "Revisar que el resto de las categorías preserve objetivos sustantivos y que la respuesta refleje los conteos. Los nombres y la cantidad de categorías no están prefijados.",
+  });
+  expect(actual.calls.length).toBeGreaterThan(0);
+  expect(actual.calls.every(({ name }) => name === "queryDatabase")).toBe(true);
+  if (!mapping?.ok) throw new Error("Falta el mapping semántico: un ranking de motivos literales no responde esta pregunta.");
+  expect(mapping.truncated).toBe(false);
+  expect(assigned).toHaveLength(allReasons.length);
+  expect([...new Set(assigned.map(({ reason }) => reason))].sort()).toEqual(allReasons);
+  const previouslyRead = calls.slice(0, mappingIndex).flatMap(({ result }) => result.ok
+    ? result.rows.map((row) => row.reason) : []);
+  for (const reason of allReasons) expect(previouslyRead).toContain(reason);
+  for (const variants of equivalentReasons) {
+    const topics = variants.map((reason) => assigned.find((row) => row.reason === reason)?.topic);
+    expect(topics.every((topic) => typeof topic === "string" && topic.trim().length > 0)).toBe(true);
+    expect(new Set(topics).size, `Estas variantes deben compartir categoría: ${variants.join(", ")}`).toBe(1);
+  }
+  // Exportar datos y consultar disponibilidad de Android son objetivos distintos.
+  expect(assigned.find(({ reason }) => reason === equivalentReasons[0]![0])!.topic)
+    .not.toBe(assigned.find(({ reason }) => reason === equivalentReasons[1]![0])!.topic);
+  const ranking = calls.slice(mappingIndex + 1).findLast(({ result }) => result.ok && result.rows.length > 0
+    && result.rows.every((row) => typeof row.topic === "string" && typeof row.count === "number"));
+  if (!ranking?.result.ok) throw new Error("Falta un ranking SQL por categoría semántica con conteos.");
+  expect(ranking.result.truncated).toBe(false);
+  // Puede devolver un top o el ranking completo; ambos deben respetar conteos y orden.
+  expect(ranking.result.rows.map(({ topic, count }) => ({ topic, count })))
+    .toEqual(expected.slice(0, ranking.result.rows.length));
+  expect(actual.answer).toContain(expected[0]!.topic);
+}, 180_000);
+
 function reviewRepeatedQuestionCitations(
   answer: string,
   references: { id: string; answer: number; repeated: number[]; explanation: string }[],
@@ -400,6 +468,154 @@ integrationTest(
   180_000,
 );
 }
+
+integrationTest(
+  "development: el modelo muestra conversaciones sin resolver sin filtros adicionales",
+  async () => {
+    if (!process.env.OPENAI_API_KEY) throw new Error("Falta OPENAI_API_KEY para el test de integración.");
+    const question = "Mostrame conversaciones que quedaron sin resolver.";
+    const development: { conversations: { id: string }[] } = await Bun.file(
+      new URL("../data/development.json", import.meta.url),
+    ).json();
+    const db = openDatabase(undefined, "readonly");
+    let rows: { conversation_id: string; resolution: string }[];
+    try {
+      rows = db.query<typeof rows[number], []>(
+        "SELECT conversation_id, resolution FROM classifications ORDER BY conversation_id",
+      ).all();
+    } finally { db.close(); }
+
+    expect(rows.map(({ conversation_id }) => conversation_id))
+      .toEqual(development.conversations.map(({ id }) => id).sort());
+    // Oráculo independiente: no reutiliza ni interpreta el SQL escrito por el modelo.
+    const eligibleIds = rows.filter(({ resolution }) => resolution === "no_resuelto")
+      .map(({ conversation_id }) => conversation_id);
+    expect(eligibleIds.length).toBeGreaterThan(0);
+    // El dataset debe permitir detectar la confusión con estos otros estados.
+    for (const state of ["resuelto", "parcialmente_resuelto", "indeterminado"]) {
+      expect(rows.some(({ resolution }) => resolution === state)).toBe(true);
+    }
+
+    const actual = await answerQuestion(createSession().id, question);
+    await report("09", question, actual, {
+      scope: "stored_development_classifications", eligibleIds,
+      excludedIds: rows.filter(({ resolution }) => resolution !== "no_resuelto")
+        .map(({ conversation_id }) => conversation_id),
+      maxExamples: 10,
+    });
+    expect(actual.calls.length).toBeGreaterThan(0);
+    expect(actual.calls.every(({ name }) => name === "queryDatabase")).toBe(true);
+    const evidence = sqlRows(actual);
+    const suppliedIds = new Set(evidence.map((row) => row.conversation_id));
+    const answerIds = [...new Set(actual.answer.match(/conv_\d+/g) ?? [])];
+    // El pedido no fija cantidad: cualquier selección de hasta 10 ejemplos es válida.
+    expect(answerIds.length).toBeGreaterThan(0);
+    expect(answerIds.length).toBeLessThanOrEqual(10);
+    for (const id of answerIds) {
+      expect(eligibleIds, `${id} no está clasificada como no_resuelto`).toContain(id);
+      expect(suppliedIds.has(id), `${id} no fue recuperada por SQL`).toBe(true);
+    }
+    expect(answerIds).toEqual([...answerIds].sort());
+
+    // Si describe mensajes, las citas deben corresponder a originales recibidos.
+    const evidenceDb = openDatabase(undefined, "readonly");
+    try {
+      for (const citation of actual.answer.matchAll(/\[(conv_\d+),\s*mensaje\s+(\d+)\]/gi)) {
+        const message = evidence.find((row) => row.conversation_id === citation[1]
+          && row.message_index === Number(citation[2]) && typeof row.content === "string");
+        expect(message, `Falta evidencia para ${citation[0]}`).toBeDefined();
+        const original = evidenceDb.query("SELECT conversation_id, message_index, role, content FROM messages WHERE conversation_id = ? AND message_index = ?")
+          .get(citation[1]!, Number(citation[2]));
+        expect(original).not.toBeNull();
+        expect(message).toMatchObject(original!);
+      }
+    } finally { evidenceDb.close(); }
+  },
+  180_000,
+);
+
+integrationTest(
+  "development: el usuario tuvo que repetirse con evidencia de ambos mensajes",
+  async () => {
+    if (!process.env.OPENAI_API_KEY) throw new Error("Falta OPENAI_API_KEY para el test de integración.");
+    const question = "Mostrame ejemplos donde el usuario tuvo que repetirse.";
+    // Pares revisados en los mensajes originales, independientes de las etiquetas.
+    // Una nueva pregunta del asistente sin repetición posterior del usuario no alcanza.
+    const references = [
+      { id: "conv_02039", original: 3, repeated: 5, trigger: 4,
+        originalText: "Me pasa desde ayer", repeatedText: "Desde ayer más o menos.",
+        explanation: "El usuario vuelve a informar cuándo comenzó el problema." },
+      { id: "conv_02594", original: 3, repeated: 13, trigger: 12,
+        originalText: "Es mia.perez657@empresa-ejemplo.com.ar.", repeatedText: "Te lo mande arriba.",
+        explanation: "El usuario remite al email ya enviado; no vuelve a escribirlo literalmente." },
+      { id: "conv_02802", original: 3, repeated: 5, trigger: 4,
+        originalText: "Me pasa desde ayer", repeatedText: "Desde ayer mas o menos.",
+        explanation: "El usuario vuelve a informar cuándo comenzó el problema." },
+    ];
+    const development: { conversations: Conversation[] } = await Bun.file(
+      new URL("../data/development.json", import.meta.url),
+    ).json();
+    const db = openDatabase(undefined, "readonly");
+    try {
+      const ids = db.query<{ conversation_id: string }, []>(
+        "SELECT conversation_id FROM classifications ORDER BY conversation_id",
+      ).all().map(({ conversation_id }) => conversation_id);
+      expect(ids).toEqual(development.conversations.map(({ id }) => id).sort());
+      for (const reference of references) {
+        const conversation = development.conversations.find(({ id }) => id === reference.id)!;
+        expect(conversation).toBeDefined();
+        expect(conversation.messages[reference.original - 1]!.content).toContain(reference.originalText);
+        expect(conversation.messages[reference.repeated - 1]!.content).toBe(reference.repeatedText);
+        expect(reference.original).toBeLessThan(reference.trigger);
+        expect(reference.trigger).toBeLessThan(reference.repeated);
+        for (const index of [reference.original, reference.trigger, reference.repeated]) {
+          const message = conversation.messages[index - 1]!;
+          expect(message.role).toBe(index === reference.trigger ? "assistant" : "user");
+          expect(db.query("SELECT role, content FROM messages WHERE conversation_id = ? AND message_index = ?")
+            .get(reference.id, index)).toEqual(message);
+        }
+      }
+    } finally { db.close(); }
+
+    const actual = await answerQuestion(createSession().id, question);
+    await report("10", question, actual, {
+      references,
+      manualReview: "Verificar que la explicación describa la repetición del usuario (o su referencia al dato previo), no solo la pregunta redundante del asistente. Casos fuera de estas referencias requieren revisión; no son automáticamente falsos. Las citas válidas no garantizan que toda la explicación sea correcta.",
+    });
+    expect(actual.calls.length).toBeGreaterThan(0);
+    // Cualquiera de las herramientas puede aportar mensajes originales.
+    const evidence = [
+      ...sqlRows(actual),
+      ...actual.calls.filter(({ name }) => name === "searchConversations").flatMap((call) =>
+        (call.result as Awaited<ReturnType<typeof searchConversations>>).results.flatMap((result) =>
+          result.messages.map((message) => ({ conversation_id: result.conversation_id, ...message })))),
+    ];
+    const answerIds = [...new Set(actual.answer.match(/conv_\d+/g) ?? [])];
+    expect(answerIds.length).toBeGreaterThan(0);
+    const citations = [...actual.answer.matchAll(/\[(conv_\d+),\s*mensaje\s+(\d+)\]/gi)];
+    for (const id of answerIds) {
+      const reference = references.find((item) => item.id === id);
+      expect(reference, `${id} requiere revisión de sus mensajes antes de incorporarlo como referencia; no implica que sea un caso incorrecto`).toBeDefined();
+      const citedIndexes = citations.filter((citation) => citation[1] === id).map((citation) => Number(citation[2]));
+      for (const index of [reference!.original, reference!.repeated]) {
+        expect(citedIndexes, `${id}: falta citar el mensaje del usuario ${index}`).toContain(index);
+      }
+    }
+    const evidenceDb = openDatabase(undefined, "readonly");
+    try {
+      for (const citation of citations) {
+        const message = evidence.find((row) => row.conversation_id === citation[1]
+          && row.message_index === Number(citation[2]) && typeof row.content === "string");
+        expect(message, `El modelo no recibió el mensaje original de ${citation[0]}`).toBeDefined();
+        const original = evidenceDb.query("SELECT conversation_id, message_index, role, content FROM messages WHERE conversation_id = ? AND message_index = ?")
+          .get(citation[1]!, Number(citation[2]));
+        expect(original).not.toBeNull();
+        expect(message).toMatchObject(original!);
+      }
+    } finally { evidenceDb.close(); }
+  },
+  180_000,
+);
 
 const question = "¿Qué porcentaje de las conversaciones con calidad del asistente adecuada quedó sin resolver? Mostrame hasta 3 ejemplos.";
 

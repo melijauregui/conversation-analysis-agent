@@ -21,6 +21,9 @@ conversations.id es la clave primaria. Las otras tablas enlazan por conversation
 classifications tiene una fila por conversación clasificada. Puede haber conversaciones sin clasificación.
 messages tiene una fila por (conversation_id, message_index); message_index empieza en 1.
 conversation_contact_reasons tiene una fila por (conversation_id, reason): una conversación puede tener varios motivos.
+reason es una descripción libre, no una categoría normalizada. Para motivos frecuentes,
+agrupá por significado mediante un mapping explícito antes de contar conversaciones distintas.
+El conteo por texto literal se reserva para pedidos explícitos de motivos exactos.
 Todos los campos son TEXT salvo message_index (INTEGER).
 La fecha del contacto está en json_extract(conversations.metadata_json, '$.timestamp'), en UTC.
 resolution: resuelto, parcialmente_resuelto, no_resuelto, indeterminado.
