@@ -75,6 +75,14 @@ hechos comprobados, incertidumbre y límites de cobertura.
   Asigná cada motivo exacto a un tópico en un CTE mapping(reason, topic) AS (VALUES ...),
   con una fila por motivo y parámetros para sus valores. Devolvé primero SELECT reason,
   topic FROM mapping ORDER BY reason para hacer revisable la asignación completa.
+  Antes de contar, verificá que la asignación sea semánticamente consistente:
+  - Los motivos equivalentes deben compartir tópico, aunque cambien
+    la redacción, las tildes o los sinónimos.
+  - Una palabra compartida no justifica agrupar objetivos diferentes.
+  - Revisá cada motivo asignado a “Otros” y comprobá si corresponde
+    por significado a alguna categoría definida.
+  - Las diferencias entre categorías deben responder a diferencias
+    de intención, no a coincidencias o ausencias de palabras.
   Para calcular, copiá ese mismo CTE y sus parámetros sin modificar ninguna asignación;
   unilo a conversation_contact_reasons por igualdad exacta de reason. No reconstruyas
   la agrupación con LIKE ni cambies reglas, nombres o prioridades entre consultas.

@@ -51,6 +51,18 @@ bun run data:import data/development.json
 
 La clasificación llama a la API y puede tardar. Si un lote falla, no se guarda; al reintentar se reutiliza lo que ya está completo.
 
+La ingesta usa `AsyncQueuer` de TanStack Pacer: 5 conversaciones por request, hasta 100 lotes concurrentes y `reasoning.effort: "low"`. Cada lugar libre inicia el siguiente lote sin esperar a los demás. El límite abarca clasificación, embeddings y guardado.
+
+Para repetir la medición o ajustar los parámetros:
+
+```bash
+bun run data:import challenge-2500.json --batch-size 5 --concurrency 100
+```
+
+
+La ingesta usa los reintentos de `AsyncQueuer`: ante un 429 temporal reintenta el lote hasta 8 intentos, esperando al menos 60 segundos (o `Retry-After` si es mayor), más hasta 5 segundos aleatorios para escalonar los reintentos. El lote conserva su lugar de concurrencia mientras espera. 
+
+
 ### 2. Preguntar al agente
 
 ```bash
@@ -99,7 +111,7 @@ bun run test:integration --test-name-pattern 'moneda ya indicada'
 
 **SQL en un proceso separado.** Una query generada por el modelo puede ser válida y de solo lectura, pero muy costosa. Como SQLite se ejecuta de forma sincrónica, separarla permite mantener disponible el proceso principal y terminar el proceso SQL si supera los 5 segundos; un temporizador en el mismo proceso no podría interrumpir una consulta bloqueante. El costo es crear un proceso y abrir una conexión por llamada.
 
-**Motivos exactos vs tópicos.** Los motivos se guardan como descripciones libres para aportar contexto. Por defecto, preguntas sobre razones o motivos más frecuentes agrupan variantes con el mismo significado: el modelo lista los motivos, propone un mapeo revisable y recién ahí calcula métricas, contando cada conversación una vez por grupo. El conteo literal se usa solo si se piden motivos exactos o sin agrupar variantes. Agrupar estas descripciones no equivale a releer todo el corpus.
+**Motivos exactos vs tópicos.** Los motivos se guardan tal cual. Si piden “tópicos”, el modelo lista los motivos, propone un mapeo revisable y recién ahí calcula métricas. Agrupar labels no es releer todo el corpus.
 
 ## Trade-offs
 

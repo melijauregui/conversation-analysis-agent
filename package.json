@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@opentui/core": "^0.5.10",
+    "@tanstack/pacer": "^0.22.0",
     "js-tiktoken": "1.0.21",
     "openai": "7.10.0",
     "sqlite-vec": "0.1.9",

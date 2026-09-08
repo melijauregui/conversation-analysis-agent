@@ -64,8 +64,7 @@ export function getEmbeddingConfiguration(options: EmbeddingOptions): {
   return { model, dimensions };
 }
 
-export function createEmbeddingClient(): EmbedBatch {
-  let client: OpenAI | undefined;
+export function createEmbeddingClient(client?: OpenAI): EmbedBatch {
   return async (request) => {
     client ??= new OpenAI({ timeout: 60_000, maxRetries: 2 });
     return client.embeddings.create({ ...request, encoding_format: "float" });

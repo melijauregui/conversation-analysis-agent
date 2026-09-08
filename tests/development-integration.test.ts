@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { mkdir } from "node:fs/promises";
 import { openDatabase } from "../src/database";
 import { answerQuestion } from "../src/orchestrate-question";
-import { createSession } from "../src/session";
+import { createSession, getSessionHistory } from "../src/session";
 import { sqlQuerySchema } from "../src/execute-question";
 import type { SqlResult } from "../src/sql-policy";
 import { searchConversationsSchema, type searchConversations } from "../src/search-conversations";
@@ -781,3 +781,145 @@ integrationTest(
   },
   180_000,
 );
+
+integrationTest("development: usuarios frustrados, solo no resueltos y patrones en la misma sesión", async () => {
+  // Referencias revisadas en mensajes de usuario: cansancio, enojo, descalificación
+  // o abandono explícito. No se infiere frustración de resolution ni de mayúsculas.
+  // Es un conjunto de referencia, no una anotación exhaustiva de todo development.
+  const references: { id: string; index: number; text: string }[] = [
+    { id: "conv_00742", index: 1, text: "ESTOY MEDIO CANSADO/A DE ESTO." },
+    { id: "conv_00351", index: 1, text: "Estoy muy molesto/a." },
+    { id: "conv_01704", index: 1, text: "Estoy medio cansado/a de esto." },
+    { id: "conv_03290", index: 1, text: "Estoy muy molesto/a." },
+    { id: "conv_03545", index: 1, text: "Estoy medio cansado/a de esto." },
+    { id: "conv_04397", index: 1, text: "Estoy medio cansado/a de esto." },
+    { id: "conv_00379", index: 1, text: "Estoy muy molesto/a." },
+    { id: "conv_02765", index: 1, text: "Quiero mi dinero de vuelta, no sirve." },
+    { id: "conv_02368", index: 1, text: "Esto es un desastre." },
+    { id: "conv_00753", index: 1, text: "ESTOY MEDIO CANSADO/A DE ESTO." },
+    { id: "conv_04667", index: 1, text: "Estoy medio cansado/a de esto." },
+    { id: "conv_01801", index: 1, text: "Estoy medio cansado/a de esto." },
+    { id: "conv_02673", index: 1, text: "Quiero mi dinero de vuelta, no sirve." },
+    { id: "conv_01090", index: 5, text: "Olvidate, busco otra opción." },
+    { id: "conv_01804", index: 6, text: "¿Podés ayudarme o no?" },
+    { id: "conv_00539", index: 4, text: "Olvidate, busco otra opción." },
+    { id: "conv_04253", index: 4, text: "podés ayudarme o no" },
+    { id: "conv_00902", index: 5, text: "Olvidate, busco otra opcion." },
+    { id: "conv_04923", index: 5, text: "podés ayudarme o no" },
+    { id: "conv_02775", index: 4, text: "¿Podés ayudarme o no?" },
+  ];
+  const development: { conversations: Conversation[] } = await Bun.file(
+    new URL("../data/development.json", import.meta.url),
+  ).json();
+  const db = openDatabase(undefined, "readonly");
+  const session = createSession();
+  const questions = ["Mostrame usuarios frustrados", "Ahora solo los no resueltos", "¿Qué tienen en común?"];
+  const turns: Awaited<ReturnType<typeof answerQuestion>>[] = [];
+  let selected: string[] = [], expected: string[] = [];
+  let passed = false;
+  let failure: string | null = null;
+  const ids = (answer: string) => [...new Set(answer.match(/conv_\d+/g) ?? [])].sort();
+  const citations = (answer: string) => [...answer.matchAll(/\[(conv_\d+),\s*mensaje\s+(\d+)\]/gi)]
+    .map((match) => ({ id: match[1]!, index: Number(match[2]) }));
+  const evidence = (turnCount: number) => turns.slice(0, turnCount).flatMap((turn) => [
+    ...sqlRows(turn),
+    ...turn.calls.filter((call) => call.name === "searchConversations").flatMap((call) =>
+      (call.result as Awaited<ReturnType<typeof searchConversations>>).results.flatMap((item) =>
+        item.messages.map((message) => ({ conversation_id: item.conversation_id, ...message })))),
+  ]);
+  function verifyCitations(answer: string, allowed: string[], turnCount: number) {
+    const cited = citations(answer);
+    expect(cited.length, "Faltan citas de mensajes originales").toBeGreaterThan(0);
+    for (const citation of cited) {
+      expect(allowed).toContain(citation.id);
+      const original = db.query("SELECT conversation_id, message_index, role, content FROM messages WHERE conversation_id = ? AND message_index = ?")
+        .get(citation.id, citation.index);
+      expect(original).not.toBeNull();
+      expect(evidence(turnCount)).toContainEqual(expect.objectContaining(original!));
+    }
+    return cited;
+  }
+  try {
+    const population = db.query<{ conversation_id: string; resolution: string }, []>(
+      "SELECT conversation_id, resolution FROM classifications ORDER BY conversation_id",
+    ).all();
+    expect(population.map((row) => row.conversation_id))
+      .toEqual(development.conversations.map((item) => item.id).sort());
+    for (const reference of references) {
+      const message = development.conversations.find((item) => item.id === reference.id)!.messages[reference.index - 1]!;
+      expect(message.role).toBe("user");
+      expect(message.content).toContain(reference.text);
+      expect(db.query("SELECT role, content FROM messages WHERE conversation_id = ? AND message_index = ?")
+        .get(reference.id, reference.index)).toEqual(message);
+    }
+
+    const first = await answerQuestion(session.id, questions[0]!);
+    turns.push(first);
+    selected = ids(first.answer);
+    expected = population.filter((row) => selected.includes(row.conversation_id) && row.resolution === "no_resuelto")
+      .map((row) => row.conversation_id);
+    // Completar el recorrido antes de evaluar para conservar los tres turnos
+    // en el reporte incluso si la selección inicial requiere revisión.
+    const second = await answerQuestion(session.id, questions[1]!);
+    turns.push(second);
+    const third = await answerQuestion(session.id, questions[2]!);
+    turns.push(third);
+    expect(selected.length).toBeGreaterThanOrEqual(3);
+    const firstCitations = verifyCitations(first.answer, selected, 1);
+    for (const id of selected) {
+      const reference = references.find((item) => item.id === id);
+      expect(reference, `${id} requiere revisión antes de incorporarlo; no es automáticamente incorrecto`).toBeDefined();
+      expect(firstCitations).toContainEqual({ id, index: reference!.index });
+    }
+    // Evita aprobar un recorrido vacío o un filtro que no excluye nada.
+    expect(expected.length, "Se necesitan dos casos no resueltos para comparar patrones").toBeGreaterThanOrEqual(2);
+    expect(expected.length, "Se necesita al menos un caso que el seguimiento deba excluir").toBeLessThan(selected.length);
+
+    const filtered = sqlCalls(second).filter(({ args, result }) => result.ok &&
+      JSON.stringify(args).includes("no_resuelto"));
+    expect(filtered.length).toBeGreaterThan(0);
+    // Debe filtrar explícitamente el conjunto mostrado, no toda la base ni todos
+    // los candidatos recuperados que no llegaron a la respuesta del primer turno.
+    expect(filtered.some(({ args, result }) => {
+      const supplied = ids(JSON.stringify(args));
+      const returned = result.ok ? [...new Set(result.rows.map((row) => row.conversation_id)
+        .filter((id): id is string => typeof id === "string"))].sort() : [];
+      return JSON.stringify(supplied) === JSON.stringify(selected)
+        && JSON.stringify(returned) === JSON.stringify(expected) && result.ok && !result.truncated;
+    }), "Falta SQL sobre todos los IDs mostrados con resultado igual al subconjunto esperado").toBe(true);
+    for (const id of expected) expect(second.answer).toContain(id);
+    // Puede mencionar casos anteriores para explicar exclusiones.
+    for (const id of ids(second.answer)) expect(selected).toContain(id);
+
+    for (const id of ids(third.answer)) expect(expected).toContain(id);
+    const thirdCitations = verifyCitations(third.answer, expected, 3);
+    expect(new Set(thirdCitations.map((citation) => citation.id)).size).toBeGreaterThanOrEqual(2);
+
+    const history = getSessionHistory(session.id);
+    expect(history.every((event) => event.sessionId === session.id)).toBe(true);
+    expect(history.map((event) => event.position)).toEqual(history.map((_, index) => index + 1));
+    expect(history.filter((event) => event.type === "user_question").map((event) => event.payload.question)).toEqual(questions);
+    expect(history.filter((event) => event.type === "assistant_message").map((event) => event.payload.content))
+      .toEqual(turns.map((turn) => turn.answer));
+    passed = true;
+  } catch (error) {
+    failure = error instanceof Error ? error.message : String(error);
+    throw error;
+  } finally {
+    db.close();
+    const path = new URL("../reports/development-question-12-multiturn.json", import.meta.url);
+    await mkdir(new URL("../reports/", import.meta.url), { recursive: true });
+    await Bun.write(path, JSON.stringify({ sessionId: session.id, questions, references,
+      selected, expectedUnresolved: expected, turns, automaticValidationPassed: passed, failure,
+      ranAt: new Date().toISOString(), model: process.env.OPENAI_MODEL ?? "gpt-5.6-luna",
+      manualReview: [
+        "Comprobar que el segundo turno presente como coincidencias únicamente expectedUnresolved; los otros IDs solo pueden aparecer como exclusiones.",
+        "Comprobar que cada patrón del tercer turno esté sustentado por los mensajes citados de al menos dos casos del subconjunto, no por casos descartados.",
+        "No basta repetir que están frustrados y no resueltos: debe describir una coincidencia adicional observable o reconocer que no hay evidencia suficiente.",
+        "No generalizar los patrones al corpus completo ni atribuir causalidad sin evidencia. Citas existentes no prueban coherencia semántica.",
+      ],
+    }, null, 2));
+    for (const [index, turn] of turns.entries()) console.log(`${questions[index]}\n${turn.answer}\n`);
+    console.log(`Reporte: ${path.pathname}`);
+  }
+}, 540_000);
