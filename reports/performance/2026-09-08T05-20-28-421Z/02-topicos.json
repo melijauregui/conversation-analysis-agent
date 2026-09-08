@@ -1,0 +1,27 @@
+{
+  "runId": "2026-09-08T05-20-28-421Z",
+  "scenario": "02-topicos",
+  "databasePath": "/Users/melinajauregui/Documents/conversation-analysis-agent/data/conversations-100.sqlite",
+  "conversations": 100,
+  "model": "gpt-5.6-luna",
+  "sessionId": "baccbe34-dce9-4e2e-8ecb-742155f87432",
+  "passed": true,
+  "failure": null,
+  "durationMs": 20708.343333,
+  "turns": [
+    {
+      "question": "Mostrame los 5 tópicos principales, su cantidad de conversaciones y porcentaje de resolución.",
+      "durationMs": 20708.343333,
+      "toolCalls": 2,
+      "sqlCalls": 2,
+      "searchCalls": 0,
+      "toolErrors": 0,
+      "answer": "Tópicos principales, agrupando semánticamente los motivos guardados:\n\n| Tópico | Conversaciones | Resueltas | Denominador | % de resolución |\n|---|---:|---:|---:|---:|\n| Pagos y cobros | 16 | 6 | 16 | 37,5% |\n| Problemas técnicos | 15 | 8 | 15 | 53,3% |\n| Acceso y seguridad | 11 | 5 | 11 | 45,5% |\n| Suscripción y planes | 11 | 4 | 11 | 36,4% |\n| Reembolsos | 9 | 3 | 9 | 33,3% |\n\nLa resolución se calculó como `resolution = 'resuelto'` sobre todas las conversaciones de cada tópico, incluyendo las no resueltas y parcialmente resueltas. Los tópicos son una interpretación semántica de los motivos almacenados; una conversación con varios motivos puede contarse en más de un tópico.",
+      "error": null
+    }
+  ],
+  "validationVersion": 4,
+  "validations": "Total exacto; límites de cantidades y porcentajes de tópicos; ranking de motivos contra SQL independiente; subconjunto no resuelto del turno anterior; existencia de IDs y mensajes citados en repetición; cantidades y porcentajes por estado con denominador igual al corpus completo.",
+  "manualReview": "Revisar significado de tópicos y evidencia de repetición. Las citas existentes no prueban la interpretación. Los rankings admiten columna inicial de posición y porcentajes con explicación del cálculo; todavía requieren tabla Markdown. El seguimiento identifica ejemplos en listas. passed no implica corrección semántica completa.",
+  "measurement": "Tiempo de answerQuestion con base preparada, incluido historial, modelo y herramientas. Excluye preparación del dataset. En turnos con error las llamadas parciales no están disponibles."
+}

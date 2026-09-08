@@ -1,0 +1,27 @@
+{
+  "runId": "2026-09-08T05-21-33-000Z",
+  "scenario": "01-total",
+  "databasePath": "/Users/melinajauregui/Documents/conversation-analysis-agent/data/conversations-1000.sqlite",
+  "conversations": 1000,
+  "model": "gpt-5.6-luna",
+  "sessionId": "bdade54d-0d0b-49f1-9bc3-c6f1e1e80b78",
+  "passed": true,
+  "failure": null,
+  "durationMs": 2752.218125,
+  "turns": [
+    {
+      "question": "¿Cuántas conversaciones hay en total en la base? Respondé con el número total en cifras.",
+      "durationMs": 2752.218125,
+      "toolCalls": 1,
+      "sqlCalls": 1,
+      "searchCalls": 0,
+      "toolErrors": 0,
+      "answer": "1000",
+      "error": null
+    }
+  ],
+  "validationVersion": 4,
+  "validations": "Total exacto; límites de cantidades y porcentajes de tópicos; ranking de motivos contra SQL independiente; subconjunto no resuelto del turno anterior; existencia de IDs y mensajes citados en repetición; cantidades y porcentajes por estado con denominador igual al corpus completo.",
+  "manualReview": "Revisar significado de tópicos y evidencia de repetición. Las citas existentes no prueban la interpretación. Los rankings admiten columna inicial de posición y porcentajes con explicación del cálculo; todavía requieren tabla Markdown. El seguimiento identifica ejemplos en listas. passed no implica corrección semántica completa.",
+  "measurement": "Tiempo de answerQuestion con base preparada, incluido historial, modelo y herramientas. Excluye preparación del dataset. En turnos con error las llamadas parciales no están disponibles."
+}

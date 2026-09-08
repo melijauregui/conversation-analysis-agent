@@ -1,0 +1,27 @@
+{
+  "runId": "2026-09-08T05-34-54-621Z",
+  "scenario": "05-motivos-exactos",
+  "databasePath": "/Users/melinajauregui/Documents/conversation-analysis-agent/data/conversations-5000.sqlite",
+  "conversations": 5000,
+  "model": "gpt-5.6-luna",
+  "sessionId": "0ed8c897-44f9-4065-80b1-cd07a77872f7",
+  "passed": true,
+  "failure": null,
+  "durationMs": 5979.805042,
+  "turns": [
+    {
+      "question": "Mostrame los 5 motivos de contacto exactos más frecuentes, su cantidad y porcentaje de resolución.",
+      "durationMs": 5979.805042,
+      "toolCalls": 1,
+      "sqlCalls": 1,
+      "searchCalls": 0,
+      "toolErrors": 0,
+      "answer": "Los 5 motivos de contacto **exactos** más frecuentes son:\n\n| # | Motivo | Cantidad | Resueltos | Porcentaje de resolución |\n|---|---|---:|---:|---:|\n| 1 | Consultar cuándo se renuevan los planes | 171 | 77 | 45,03% |\n| 2 | Consultar cómo exportar los datos | 130 | 64 | 49,23% |\n| 3 | Consultar si existe una aplicación para Android | 118 | 54 | 45,76% |\n| 4 | Consultar cómo invitar a otra persona al equipo | 96 | 59 | 61,46% |\n| 5 | Consultar si puede invitar a otra persona al equipo | 58 | 22 | 37,93% |\n\nEl porcentaje se calculó como conversaciones con `resolution = 'resuelto'` dividido por todas las conversaciones que tienen ese motivo, incluidos los demás estados de resolución. Se contaron motivos literalmente, sin agrupar variantes.",
+      "error": null
+    }
+  ],
+  "validationVersion": 4,
+  "validations": "Total exacto; límites de cantidades y porcentajes de tópicos; ranking de motivos contra SQL independiente; subconjunto no resuelto del turno anterior; existencia de IDs y mensajes citados en repetición; cantidades y porcentajes por estado con denominador igual al corpus completo.",
+  "manualReview": "Revisar significado de tópicos y evidencia de repetición. Las citas existentes no prueban la interpretación. Los rankings admiten columna inicial de posición y porcentajes con explicación del cálculo; todavía requieren tabla Markdown. El seguimiento identifica ejemplos en listas. passed no implica corrección semántica completa.",
+  "measurement": "Tiempo de answerQuestion con base preparada, incluido historial, modelo y herramientas. Excluye preparación del dataset. En turnos con error las llamadas parciales no están disponibles."
+}

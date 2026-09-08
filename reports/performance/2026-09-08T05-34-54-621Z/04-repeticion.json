@@ -1,0 +1,27 @@
+{
+  "runId": "2026-09-08T05-34-54-621Z",
+  "scenario": "04-repeticion",
+  "databasePath": "/Users/melinajauregui/Documents/conversation-analysis-agent/data/conversations-5000.sqlite",
+  "conversations": 5000,
+  "model": "gpt-5.6-luna",
+  "sessionId": "3306e2f4-dfd3-499e-b05e-f6f289b42c9b",
+  "passed": true,
+  "failure": null,
+  "durationMs": 9092.780707999998,
+  "turns": [
+    {
+      "question": "Mostrame ejemplos donde el usuario tuvo que repetirse.",
+      "durationMs": 9092.780707999998,
+      "toolCalls": 1,
+      "sqlCalls": 1,
+      "searchCalls": 0,
+      "toolErrors": 0,
+      "answer": "Ejemplos donde el usuario tuvo que repetir un dato ya aportado:\n\n- **conv_00036:** el usuario informó su email en el mensaje 3; el asistente volvió a pedir “los dos emails” en el mensaje 4. El usuario respondió “Te lo pasé” en el mensaje 5 y la solicitud se repitió otra vez en el mensaje 6. **[conv_00036, mensaje 3] [conv_00036, mensaje 4] [conv_00036, mensaje 5] [conv_00036, mensaje 6]**\n- **conv_00209:** el usuario proporcionó el email en el mensaje 3; el asistente volvió a solicitarlo en el mensaje 4. El usuario señaló “Eso ya lo hice” en el mensaje 5. **[conv_00209, mensaje 3] [conv_00209, mensaje 4] [conv_00209, mensaje 5]**\n- **conv_00296:** el usuario dio su email en el mensaje 3; el asistente volvió a pedirlo en el mensaje 4. El usuario preguntó “¿Podés leer lo anterior?” en el mensaje 5. **[conv_00296, mensaje 3] [conv_00296, mensaje 4] [conv_00296, mensaje 5]**\n- **conv_00667:** el usuario informó el ID del cargo disputado en el mensaje 3; el asistente lo volvió a pedir en el mensaje 8. El usuario respondió “Ya te pasé eso” en el mensaje 9. **[conv_00667, mensaje 3] [conv_00667, mensaje 8] [conv_00667, mensaje 9]**\n- **conv_00692:** el usuario proporcionó su email en el mensaje 3; el asistente lo volvió a pedir en los mensajes 4 y 6. El usuario respondió “Te lo pasé” en el mensaje 5 y luego abandonó la conversación. **[conv_00692, mensaje 3] [conv_00692, mensaje 4] [conv_00692, mensaje 5] [conv_00692, mensaje 6] [conv_00692, mensaje 7]**\n- **conv_00414:** el usuario informó su email en el mensaje 3; el asistente volvió a solicitarlo en el mensaje 4. El usuario respondió repitiéndolo en el mensaje 5. **[conv_00414, mensaje 3] [conv_00414, mensaje 4] [conv_00414, mensaje 5]**\n\nEstos casos corresponden a conversaciones etiquetadas con `repetition = presente`; la etiqueta describe repetición observada en la conversación, pero no necesariamente identifica por sí sola cuál fue el dato repetido.",
+      "error": null
+    }
+  ],
+  "validationVersion": 4,
+  "validations": "Total exacto; límites de cantidades y porcentajes de tópicos; ranking de motivos contra SQL independiente; subconjunto no resuelto del turno anterior; existencia de IDs y mensajes citados en repetición; cantidades y porcentajes por estado con denominador igual al corpus completo.",
+  "manualReview": "Revisar significado de tópicos y evidencia de repetición. Las citas existentes no prueban la interpretación. Los rankings admiten columna inicial de posición y porcentajes con explicación del cálculo; todavía requieren tabla Markdown. El seguimiento identifica ejemplos en listas. passed no implica corrección semántica completa.",
+  "measurement": "Tiempo de answerQuestion con base preparada, incluido historial, modelo y herramientas. Excluye preparación del dataset. En turnos con error las llamadas parciales no están disponibles."
+}

@@ -1,0 +1,181 @@
+{
+  "generatedAt": "2026-09-08T05:37:14.310Z",
+  "selection": "Última ejecución completa disponible por tamaño, con el mismo modelo y validador versión 4. Una observación por celda; estos valores no son promedios de todas las corridas.",
+  "model": "gpt-5.6-luna",
+  "runs": [
+    {
+      "conversations": 100,
+      "runId": "2026-09-08T05-20-28-421Z",
+      "tests": 7,
+      "passed": 7,
+      "turns": 8,
+      "scenarios": [
+        {
+          "scenario": "01-total",
+          "durationSeconds": 2.9171513750000004,
+          "passed": true,
+          "toolCalls": 1,
+          "toolErrors": 0
+        },
+        {
+          "scenario": "02-topicos",
+          "durationSeconds": 20.708343333000002,
+          "passed": true,
+          "toolCalls": 2,
+          "toolErrors": 0
+        },
+        {
+          "scenario": "03-seguimiento",
+          "durationSeconds": 9.953346876000003,
+          "passed": true,
+          "toolCalls": 2,
+          "toolErrors": 0
+        },
+        {
+          "scenario": "04-repeticion",
+          "durationSeconds": 13.135215917000002,
+          "passed": true,
+          "toolCalls": 2,
+          "toolErrors": 0
+        },
+        {
+          "scenario": "05-motivos-exactos",
+          "durationSeconds": 8.538844375,
+          "passed": true,
+          "toolCalls": 2,
+          "toolErrors": 1
+        },
+        {
+          "scenario": "06-no-resueltas",
+          "durationSeconds": 4.536280625,
+          "passed": true,
+          "toolCalls": 1,
+          "toolErrors": 0
+        },
+        {
+          "scenario": "07-comparacion-resolucion",
+          "durationSeconds": 4.688237125,
+          "passed": true,
+          "toolCalls": 1,
+          "toolErrors": 0
+        }
+      ]
+    },
+    {
+      "conversations": 1000,
+      "runId": "2026-09-08T05-21-33-000Z",
+      "tests": 7,
+      "passed": 7,
+      "turns": 8,
+      "scenarios": [
+        {
+          "scenario": "01-total",
+          "durationSeconds": 2.7522181249999997,
+          "passed": true,
+          "toolCalls": 1,
+          "toolErrors": 0
+        },
+        {
+          "scenario": "02-topicos",
+          "durationSeconds": 15.782048333,
+          "passed": true,
+          "toolCalls": 2,
+          "toolErrors": 0
+        },
+        {
+          "scenario": "03-seguimiento",
+          "durationSeconds": 12.580657666000002,
+          "passed": true,
+          "toolCalls": 2,
+          "toolErrors": 0
+        },
+        {
+          "scenario": "04-repeticion",
+          "durationSeconds": 9.629096792000004,
+          "passed": true,
+          "toolCalls": 2,
+          "toolErrors": 0
+        },
+        {
+          "scenario": "05-motivos-exactos",
+          "durationSeconds": 8.969989375000004,
+          "passed": true,
+          "toolCalls": 2,
+          "toolErrors": 1
+        },
+        {
+          "scenario": "06-no-resueltas",
+          "durationSeconds": 3.3574739999999945,
+          "passed": true,
+          "toolCalls": 1,
+          "toolErrors": 0
+        },
+        {
+          "scenario": "07-comparacion-resolucion",
+          "durationSeconds": 5.362506250000006,
+          "passed": true,
+          "toolCalls": 1,
+          "toolErrors": 0
+        }
+      ]
+    },
+    {
+      "conversations": 5000,
+      "runId": "2026-09-08T05-34-54-621Z",
+      "tests": 7,
+      "passed": 7,
+      "turns": 8,
+      "scenarios": [
+        {
+          "scenario": "01-total",
+          "durationSeconds": 3.403489833,
+          "passed": true,
+          "toolCalls": 1,
+          "toolErrors": 0
+        },
+        {
+          "scenario": "02-topicos",
+          "durationSeconds": 18.51694175,
+          "passed": true,
+          "toolCalls": 2,
+          "toolErrors": 0
+        },
+        {
+          "scenario": "03-seguimiento",
+          "durationSeconds": 14.286538457999999,
+          "passed": true,
+          "toolCalls": 2,
+          "toolErrors": 0
+        },
+        {
+          "scenario": "04-repeticion",
+          "durationSeconds": 9.092780707999998,
+          "passed": true,
+          "toolCalls": 1,
+          "toolErrors": 0
+        },
+        {
+          "scenario": "05-motivos-exactos",
+          "durationSeconds": 5.979805042,
+          "passed": true,
+          "toolCalls": 1,
+          "toolErrors": 0
+        },
+        {
+          "scenario": "06-no-resueltas",
+          "durationSeconds": 4.4285168750000015,
+          "passed": true,
+          "toolCalls": 1,
+          "toolErrors": 0
+        },
+        {
+          "scenario": "07-comparacion-resolucion",
+          "durationSeconds": 11.196263375000003,
+          "passed": true,
+          "toolCalls": 2,
+          "toolErrors": 1
+        }
+      ]
+    }
+  ]
+}

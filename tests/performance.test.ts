@@ -5,6 +5,7 @@ import { defaultDatabasePath, openDatabase } from "../src/database";
 import { answerQuestion } from "../src/orchestrate-question";
 import { createSession } from "../src/session";
 import type { SqlResult } from "../src/sql-policy";
+import { countValue, percentageValue, tableRows } from "./performance-format";
 
 type Answer = Awaited<ReturnType<typeof answerQuestion>>;
 const conversationIds = (text: string) => [...new Set(text.match(/conv_\d+/g) ?? [])].sort();
@@ -18,22 +19,6 @@ function sqlResults(actual: Answer) {
   return actual.calls.filter((call) => call.name === "queryDatabase")
     .map((call) => call.result as SqlResult).filter((result) => result.ok);
 }
-// Los rankings actuales se presentan como tablas Markdown. Si cambia el formato,
-// fallamos explícitamente para revisar el parser, sin asumir que el contenido es incorrecto.
-function tableRows(answer: string) {
-  return answer.split("\n").filter((line) => line.trim().startsWith("|"))
-    .map((line) => line.trim().replace(/^\||\|$/g, "").split("|").map((cell) => cell.trim().replace(/\*\*/g, "")))
-    .filter((cells) => cells.length >= 3 && /^\d/.test(cells[1]!));
-}
-function countValue(text: string) {
-  expect(text).toMatch(/^\d+(?:[.,\s]\d{3})*$/);
-  return Number(text.replace(/[.,\s]/g, ""));
-}
-function percentageValue(text: string) {
-  expect(text).toMatch(/^\d+(?:[.,]\d+)?\s*%$/);
-  return Number(text.replace(/\s|%/g, "").replace(",", "."));
-}
-
 function validateAnswer(scenario: string, actual: Answer, previous: Answer | undefined,
   conversations: number, databasePath: string) {
   expect(actual.answer.trim().length).toBeGreaterThan(0);
@@ -131,8 +116,8 @@ function validateAnswer(scenario: string, actual: Answer, previous: Answer | und
   } finally { db.close(); }
 }
 
-// Usa una base ya importada. No clasifica ni genera embeddings del dataset.
-// Opt-in porque las preguntas y los embeddings de búsqueda consumen API.
+// Usa una base ya importada; no ejecuta la ingesta.
+// Opt-in: consume API y el orquestador puede elegir analizar el corpus nuevamente.
 const enabled = process.env.RUN_PERFORMANCE === "1";
 const databasePath = resolve(process.env.BENCH_DATABASE_PATH ?? defaultDatabasePath);
 const runId = new Date().toISOString().replace(/[:.]/g, "-");
@@ -196,9 +181,9 @@ for (const scenario of scenarios) {
       const durationMs = turns.reduce((sum, turn) => sum + turn.durationMs, 0);
       await Bun.write(path, JSON.stringify({ runId, scenario: scenario.id, databasePath,
         conversations, model: process.env.OPENAI_MODEL ?? "gpt-5.6-luna", sessionId: session.id,
-        passed, failure, durationMs, turns, validationVersion: 3,
+        passed, failure, durationMs, turns, validationVersion: 4,
         validations: "Total exacto; límites de cantidades y porcentajes de tópicos; ranking de motivos contra SQL independiente; subconjunto no resuelto del turno anterior; existencia de IDs y mensajes citados en repetición; cantidades y porcentajes por estado con denominador igual al corpus completo.",
-        manualReview: "Revisar significado de tópicos y evidencia de repetición. Las citas existentes no prueban la interpretación. Los rankings requieren tabla Markdown y el seguimiento identifica ejemplos en listas; un cambio de formato puede requerir adaptar la validación. passed no implica corrección semántica completa.",
+        manualReview: "Revisar significado de tópicos y evidencia de repetición. Las citas existentes no prueban la interpretación. Los rankings admiten columna inicial de posición y porcentajes con explicación del cálculo; todavía requieren tabla Markdown. El seguimiento identifica ejemplos en listas. passed no implica corrección semántica completa.",
         measurement: "Tiempo de answerQuestion con base preparada, incluido historial, modelo y herramientas. Excluye preparación del dataset. En turnos con error las llamadas parciales no están disponibles.",
       }, null, 2));
       console.log(`\n${scenario.id} | N=${conversations} | ${(durationMs / 1000).toFixed(2)} s | ${passed ? "PASS" : "FAIL"}`);

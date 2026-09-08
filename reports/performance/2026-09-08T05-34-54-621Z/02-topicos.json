@@ -1,0 +1,27 @@
+{
+  "runId": "2026-09-08T05-34-54-621Z",
+  "scenario": "02-topicos",
+  "databasePath": "/Users/melinajauregui/Documents/conversation-analysis-agent/data/conversations-5000.sqlite",
+  "conversations": 5000,
+  "model": "gpt-5.6-luna",
+  "sessionId": "39e2268a-b7c6-4e68-b9f2-342750b3f213",
+  "passed": true,
+  "failure": null,
+  "durationMs": 18516.94175,
+  "turns": [
+    {
+      "question": "Mostrame los 5 tópicos principales, su cantidad de conversaciones y porcentaje de resolución.",
+      "durationMs": 18516.94175,
+      "toolCalls": 2,
+      "sqlCalls": 2,
+      "searchCalls": 0,
+      "toolErrors": 0,
+      "answer": "Tópicos principales, agrupando semánticamente los motivos de contacto guardados:\n\n| Tópico | Conversaciones | Resueltas | Porcentaje de resolución |\n|---|---:|---:|---:|\n| Otros | 2.339 | 1.147 | 49,04% |\n| Uso y configuración del producto | 1.103 | 599 | 54,31% |\n| Facturación y pagos | 829 | 403 | 48,61% |\n| Acceso y autenticación | 512 | 323 | 63,09% |\n| Cancelación de suscripción o cuenta | 500 | 232 | 46,40% |\n\nEl porcentaje se calculó como **conversaciones resueltas / total de conversaciones del tópico**, incluyendo las parcialmente resueltas, no resueltas e indeterminadas en el denominador.\n\n**Límite:** los tópicos son una interpretación de los motivos almacenados; una conversación puede pertenecer a más de un tópico, por lo que las cantidades no necesariamente suman el total de conversaciones. “Otros” concentra motivos que no entraron en las categorías principales.",
+      "error": null
+    }
+  ],
+  "validationVersion": 4,
+  "validations": "Total exacto; límites de cantidades y porcentajes de tópicos; ranking de motivos contra SQL independiente; subconjunto no resuelto del turno anterior; existencia de IDs y mensajes citados en repetición; cantidades y porcentajes por estado con denominador igual al corpus completo.",
+  "manualReview": "Revisar significado de tópicos y evidencia de repetición. Las citas existentes no prueban la interpretación. Los rankings admiten columna inicial de posición y porcentajes con explicación del cálculo; todavía requieren tabla Markdown. El seguimiento identifica ejemplos en listas. passed no implica corrección semántica completa.",
+  "measurement": "Tiempo de answerQuestion con base preparada, incluido historial, modelo y herramientas. Excluye preparación del dataset. En turnos con error las llamadas parciales no están disponibles."
+}

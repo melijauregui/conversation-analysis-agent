@@ -1,0 +1,27 @@
+{
+  "runId": "2026-09-08T05-21-33-000Z",
+  "scenario": "02-topicos",
+  "databasePath": "/Users/melinajauregui/Documents/conversation-analysis-agent/data/conversations-1000.sqlite",
+  "conversations": 1000,
+  "model": "gpt-5.6-luna",
+  "sessionId": "e7522a2b-1df1-400f-bc05-743bd289b20e",
+  "passed": true,
+  "failure": null,
+  "durationMs": 15782.048333,
+  "turns": [
+    {
+      "question": "Mostrame los 5 tópicos principales, su cantidad de conversaciones y porcentaje de resolución.",
+      "durationMs": 15782.048333,
+      "toolCalls": 2,
+      "sqlCalls": 2,
+      "searchCalls": 0,
+      "toolErrors": 0,
+      "answer": "Agrupando semánticamente los motivos guardados, los 5 tópicos principales son:\n\n| Tópico | Conversaciones | Resueltas | Denominador | % de resolución |\n|---|---:|---:|---:|---:|\n| Otros | 360 | 192 | 360 | 53,33% |\n| Planes, precios y pagos | 222 | 97 | 222 | 43,69% |\n| Aplicación y funcionamiento | 177 | 90 | 177 | 50,85% |\n| Acceso y autenticación | 133 | 73 | 133 | 54,89% |\n| Cancelación de suscripción | 102 | 47 | 102 | 46,08% |\n\nLa resolución se calculó como `resolution = 'resuelto'` sobre todas las conversaciones de cada tópico, incluyendo las no resueltas, parcialmente resueltas e indeterminadas. Una conversación puede pertenecer a más de un tópico, por lo que las cantidades no son necesariamente excluyentes. «Otros» reúne los motivos que no encajaron en las categorías principales.",
+      "error": null
+    }
+  ],
+  "validationVersion": 4,
+  "validations": "Total exacto; límites de cantidades y porcentajes de tópicos; ranking de motivos contra SQL independiente; subconjunto no resuelto del turno anterior; existencia de IDs y mensajes citados en repetición; cantidades y porcentajes por estado con denominador igual al corpus completo.",
+  "manualReview": "Revisar significado de tópicos y evidencia de repetición. Las citas existentes no prueban la interpretación. Los rankings admiten columna inicial de posición y porcentajes con explicación del cálculo; todavía requieren tabla Markdown. El seguimiento identifica ejemplos en listas. passed no implica corrección semántica completa.",
+  "measurement": "Tiempo de answerQuestion con base preparada, incluido historial, modelo y herramientas. Excluye preparación del dataset. En turnos con error las llamadas parciales no están disponibles."
+}

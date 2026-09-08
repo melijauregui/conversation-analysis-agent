@@ -1,0 +1,27 @@
+{
+  "runId": "2026-09-08T05-21-33-000Z",
+  "scenario": "07-comparacion-resolucion",
+  "databasePath": "/Users/melinajauregui/Documents/conversation-analysis-agent/data/conversations-1000.sqlite",
+  "conversations": 1000,
+  "model": "gpt-5.6-luna",
+  "sessionId": "ecd57f43-279a-4034-8c70-f4418b9ff7f4",
+  "passed": true,
+  "failure": null,
+  "durationMs": 5362.506250000006,
+  "turns": [
+    {
+      "question": "Compará las conversaciones clasificadas como resuelto y no_resuelto: cantidad y porcentaje de cada estado sobre TODAS las conversaciones de la base, sin excluir del denominador otros estados ni conversaciones sin clasificar. Respondé con una tabla Markdown de dos filas y columnas Estado, Cantidad, Total de conversaciones, Porcentaje. Usá los nombres exactos resuelto y no_resuelto, incluso si alguno tiene cantidad cero.",
+      "durationMs": 5362.506250000006,
+      "toolCalls": 1,
+      "sqlCalls": 1,
+      "searchCalls": 0,
+      "toolErrors": 0,
+      "answer": "| Estado | Cantidad | Total de conversaciones | Porcentaje |\n|---|---:|---:|---:|\n| resuelto | 505 | 1000 | 50,5% |\n| no_resuelto | 295 | 1000 | 29,5% |\n\nLos porcentajes usan como denominador las **1000 conversaciones de la base**, incluyendo otros estados y conversaciones sin clasificar.",
+      "error": null
+    }
+  ],
+  "validationVersion": 4,
+  "validations": "Total exacto; límites de cantidades y porcentajes de tópicos; ranking de motivos contra SQL independiente; subconjunto no resuelto del turno anterior; existencia de IDs y mensajes citados en repetición; cantidades y porcentajes por estado con denominador igual al corpus completo.",
+  "manualReview": "Revisar significado de tópicos y evidencia de repetición. Las citas existentes no prueban la interpretación. Los rankings admiten columna inicial de posición y porcentajes con explicación del cálculo; todavía requieren tabla Markdown. El seguimiento identifica ejemplos en listas. passed no implica corrección semántica completa.",
+  "measurement": "Tiempo de answerQuestion con base preparada, incluido historial, modelo y herramientas. Excluye preparación del dataset. En turnos con error las llamadas parciales no están disponibles."
+}

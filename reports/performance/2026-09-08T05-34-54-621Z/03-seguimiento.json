@@ -1,0 +1,37 @@
+{
+  "runId": "2026-09-08T05-34-54-621Z",
+  "scenario": "03-seguimiento",
+  "databasePath": "/Users/melinajauregui/Documents/conversation-analysis-agent/data/conversations-5000.sqlite",
+  "conversations": 5000,
+  "model": "gpt-5.6-luna",
+  "sessionId": "a7e1e2bf-320a-405e-8ad6-60c9b6ee00d9",
+  "passed": true,
+  "failure": null,
+  "durationMs": 14286.538457999999,
+  "turns": [
+    {
+      "question": "Mostrame conversaciones sobre problemas para configurar passkey.",
+      "durationMs": 8743.768874999998,
+      "toolCalls": 1,
+      "sqlCalls": 0,
+      "searchCalls": 1,
+      "toolErrors": 0,
+      "answer": "Encontré estas conversaciones sobre problemas para configurar o usar passkeys:\n\n- **conv_00072** — No pudo configurar la passkey y finalmente dijo: “Me rindo” [conv_00072, mensaje 1] y [conv_00072, mensaje 5].\n- **conv_00376** — Indicó que no podía configurar la passkey; luego confirmó que quedó resuelto [conv_00376, mensaje 1] y [conv_00376, mensaje 7].\n- **conv_01247** — No podía configurar una passkey y confirmó que funcionó tras registrar una nueva [conv_01247, mensaje 1] y [conv_01247, mensaje 4].\n- **conv_02098** — Reportó un error al usar passkey y luego dijo que se solucionó [conv_02098, mensaje 1] y [conv_02098, mensaje 4].\n- **conv_02308** — No podía configurar passkey y confirmó que funcionó [conv_02308, mensaje 1] y [conv_02308, mensaje 5].\n- **conv_02393** — Después de varios días intentando resolverlo, indicó que no podía configurar passkey; luego informó que ya funcionaba [conv_02393, mensaje 3] y [conv_02393, mensaje 8].\n- **conv_03091** — No podía configurar passkey y confirmó que quedó resuelto [conv_03091, mensaje 1] y [conv_03091, mensaje 4].\n- **conv_03162** — Reportó un error al intentar usar passkey, con frustración explícita, y después dijo que se solucionó [conv_03162, mensaje 1] y [conv_03162, mensaje 4].\n- **conv_04264** — Indicó que passkey daba error y confirmó que funcionó después de reiniciar [conv_04264, mensaje 1] y [conv_04264, mensaje 7].\n- **conv_04346** — Su passkey dejó de funcionar y luego confirmó que quedó resuelto [conv_04346, mensaje 1] y [conv_04346, mensaje 4].\n\nLa lista proviene de una búsqueda de candidatos por contenido; no representa necesariamente el total completo del corpus.",
+      "error": null
+    },
+    {
+      "question": "Ahora solo las no resueltas.",
+      "durationMs": 5542.769583000001,
+      "toolCalls": 1,
+      "sqlCalls": 1,
+      "searchCalls": 0,
+      "toolErrors": 0,
+      "answer": "La única conversación del conjunto anterior clasificada como **no resuelta** es:\n\n- **conv_00072** — La persona indicó que no podía configurar la passkey [conv_00072, mensaje 1]. Después intentó continuar, pero terminó diciendo: “Me rindo, gracias igual” [conv_00072, mensaje 5].\n\nEl filtro se aplicó sobre las 10 conversaciones identificadas previamente; solo una tiene `resolution = no_resuelto`.",
+      "error": null
+    }
+  ],
+  "validationVersion": 4,
+  "validations": "Total exacto; límites de cantidades y porcentajes de tópicos; ranking de motivos contra SQL independiente; subconjunto no resuelto del turno anterior; existencia de IDs y mensajes citados en repetición; cantidades y porcentajes por estado con denominador igual al corpus completo.",
+  "manualReview": "Revisar significado de tópicos y evidencia de repetición. Las citas existentes no prueban la interpretación. Los rankings admiten columna inicial de posición y porcentajes con explicación del cálculo; todavía requieren tabla Markdown. El seguimiento identifica ejemplos en listas. passed no implica corrección semántica completa.",
+  "measurement": "Tiempo de answerQuestion con base preparada, incluido historial, modelo y herramientas. Excluye preparación del dataset. En turnos con error las llamadas parciales no están disponibles."
+}
