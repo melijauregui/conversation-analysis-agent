@@ -16,7 +16,7 @@ export interface ChatOptions {
   answerQuestionFn?: (
     sessionId: string,
     question: string,
-    options?: { databasePath?: string }
+    options?: { databasePath?: string; onProgress?: (message: string) => void }
   ) => Promise<{ answer: string; calls: ToolCall[] }>;
   onExit?: () => void;
 }
@@ -151,6 +151,11 @@ export async function startChat(options: ChatOptions = {}): Promise<ChatInstance
     try {
       const result = await answerFn(sessionId, question, {
         databasePath: options.databasePath,
+        onProgress: (message) => {
+          if (renderer.isDestroyed) return;
+          statusText.content = `[${message}]`;
+          renderer.requestRender();
+        },
       });
 
       // Resumen compacto de llamadas a herramientas

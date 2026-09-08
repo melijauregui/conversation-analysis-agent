@@ -39,7 +39,7 @@ function tool(name: string, args: unknown, call_id = "call_1"): Awaited<ReturnTy
 }
 const final = (text: string): Awaited<ReturnType<Respond>> => ({ status: "completed", output: [], output_text: text });
 
-test("ofrece ambas herramientas y devuelve el resultado SQL al modelo antes de responder", async () => {
+test("ofrece las tres herramientas y devuelve el resultado SQL al modelo antes de responder", async () => {
   let requests = 0;
   const databasePath = fixture();
   const session = createSession({ databasePath });
@@ -47,7 +47,7 @@ test("ofrece ambas herramientas y devuelve el resultado SQL al modelo antes de r
     respond: async (request) => {
       requests++;
       expect(request.tools?.map((t) => t.type === "function" && t.name))
-        .toEqual(["queryDatabase", "searchConversations"]);
+        .toEqual(["queryDatabase", "searchConversations", "analyzeConversations"]);
       expect(request.parallel_tool_calls).toBe(false);
       expect(request.store).toBe(false);
       if (requests === 1) return tool("queryDatabase", query);
@@ -95,6 +95,37 @@ test("encadena búsqueda real con filtro SQL sobre los IDs recuperados", async (
   });
   expect(requests).toBe(3);
   expect(result.calls.map((call) => call.name)).toEqual(["searchConversations", "queryDatabase"]);
+});
+
+test("ejecuta el análisis completo en una llamada y conserva criterio, cobertura y evidencia en la sesión", async () => {
+  const databasePath = fixture();
+  const session = createSession({ databasePath });
+  const progress: string[] = [];
+  let requests = 0;
+  const criterion = "Frustración explícita del usuario; un problema técnico solo no alcanza.";
+  const result = await answerQuestion(session.id, "¿Cuántas conversaciones muestran frustración en toda la base?", {
+    databasePath, maxToolCalls: 1, onProgress: (message) => progress.push(message),
+    analysis: { batchSize: 1, evaluateBatch: async (received, batch) => {
+      expect(received).toBe(criterion);
+      expect(batch[0]!.classification?.resolution).toBe(batch[0]!.id === "a" ? "resuelto" : "no_resuelto");
+      return { results: batch.map((conversation) => ({ conversation_id: conversation.id,
+        verdict: "ausente", evidence_messages: [] })) };
+    } },
+    respond: async (request) => {
+      if (++requests === 1) return tool("analyzeConversations", { criterion });
+      expect(request.tool_choice).toBe("none");
+      const last = Array.isArray(request.input) ? request.input.at(-1) : null;
+      if (last?.type !== "function_call_output" || typeof last.output !== "string") throw new Error("Falta análisis");
+      expect(JSON.parse(last.output)).toMatchObject({ criterion, complete: true, total: 2,
+        evaluated: 2, counts: { presente: 0, ausente: 2, indeterminado: 0 } });
+      return final("Se analizaron las 2 conversaciones: 0 muestran frustración según el criterio aplicado.");
+    },
+  });
+  expect(result.calls.map((call) => call.name)).toEqual(["analyzeConversations"]);
+  expect(progress.some((message) => message.includes("2/2"))).toBe(true);
+  expect(progress.at(-1)).toBe("Preparando respuesta...");
+  expect(getSessionHistory(session.id, { databasePath })[2]?.payload)
+    .toMatchObject({ result: { criterion, complete: true, evaluated: 2 } });
 });
 
 test("puede pedir aclaración sin ejecutar herramientas", async () => {

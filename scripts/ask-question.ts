@@ -8,11 +8,13 @@ const question =
 
 // Mostrame conversaciones sobre passkeys que estén resueltas.
 // ¿Cuántas conversaciones quedaron resueltas en enero de 2024? Mostrame 3 ejemplos.
-// ¿Cuántas conversaciones muestran frustración? → debe explicar la falta de cobertura global.
+// ¿Cuántas conversaciones muestran frustración? → recorre toda la base por lotes.
 
 try {
   const session = createSession();
-  const { calls, answer } = await answerQuestion(session.id, question);
+  const { calls, answer } = await answerQuestion(session.id, question, {
+    onProgress: (message) => console.error(message),
+  });
   console.log(JSON.stringify({ sessionId: session.id, question, calls }, null, 2));
   console.log(answer);
 } catch (error) {

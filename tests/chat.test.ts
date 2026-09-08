@@ -62,11 +62,13 @@ test("área de mensajes muestra pregunta del usuario, estado [Procesando...], re
   });
 
   const recordedCalls: string[] = [];
+  let reportProgress: ((message: string) => void) | undefined;
 
   const chat = await startChat({
     renderer,
-    answerQuestionFn: async (sessionId, question) => {
+    answerQuestionFn: async (sessionId, question, options) => {
       recordedCalls.push(question);
+      reportProgress = options?.onProgress;
       return answerPromise;
     },
   });
@@ -81,6 +83,10 @@ test("área de mensajes muestra pregunta del usuario, estado [Procesando...], re
   const processingFrame = captureCharFrame();
   expect(processingFrame).toContain("Tú: ¿Cuáles son los motivos principales de baja?");
   expect(processingFrame).toContain("[Procesando...]");
+
+  reportProgress?.("Analizando conversaciones: 200/5000 | fallidas: 0");
+  await renderOnce();
+  expect(captureCharFrame()).toContain("Analizando conversaciones: 200/5000 | fallidas: 0");
 
   // Responder con resumen de llamadas y respuesta con citas
   resolveAnswer!({

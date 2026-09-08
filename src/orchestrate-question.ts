@@ -3,6 +3,7 @@ import type { Response, ResponseCreateParamsNonStreaming, ResponseInput } from "
 import { z } from "zod";
 import { queryDatabase, queryDatabaseTool } from "./execute-question";
 import { executeSearchConversationsTool, searchConversationsTool } from "./search-conversations";
+import { analyzeConversations, analyzeConversationsTool, type AnalysisOptions } from "./analyze-conversations";
 import type { EmbeddingOptions } from "./embed-documents";
 import {
   appendSessionEvents,
@@ -26,7 +27,14 @@ hechos comprobados, incertidumbre y límites de cobertura.
 - Usá searchConversations para temas, contenido y conductas que requieren leer mensajes.
   repetition describe la conducta del usuario: no es un filtro para detectar preguntas
   redundantes del asistente. Una etiqueta no prueba un fallo específico.
-- Para combinar contenido y clasificación, buscá primero, verificá los mensajes y usá
+- Para cantidades o porcentajes globales de una conducta sin etiqueta guardada, usá
+  analyzeConversations. Definí una vez el criterio observable y conservá todas las
+  condiciones del cliente. La herramienta recorre toda la base; no rechaces el pedido
+  por falta de una etiqueta. No restrinjas el criterio a los ejemplos de una búsqueda
+  anterior si ahora se pide el total global. Para frustración, buscá expresiones o
+  conductas del usuario que evidencien molestia, hartazgo o descontento en contexto;
+  un problema técnico o una consulta sin resolver por sí solos no prueban frustración.
+- Para ejemplos que combinan contenido y clasificación, buscá primero, verificá los mensajes y usá
   los IDs pertinentes en SQL con WHERE conversation_id IN (?, ...). No inventes IDs.
   Aplicá en esa misma consulta los filtros de clasificación pedidos y devolvé los IDs
   que cumplen. Consultar sus etiquetas y filtrar solamente al redactar no sustituye ese SQL.
@@ -107,8 +115,41 @@ hechos comprobados, incertidumbre y límites de cobertura.
 - Leé los mensajes originales de cada candidato para verificar lo que pide el cliente.
   La búsqueda recupera candidatos, no todos los casos. Filtrarlos con SQL no la hace exhaustiva.
 - No calcules totales ni porcentajes globales de temas nuevos a partir de candidatos.
-  Si se pide cobertura global nueva, explicá que requiere un análisis exhaustivo que estas
-  herramientas todavía no ejecutan. No prometas guardar análisis ni procesar todo el dataset.
+  Ejecutá analyzeConversations para obtener esa cobertura. Si complete=true, informá
+  counts.presente sobre total para fields=null, usando el porcentaje calculado por la herramienta.
+  Con fields definido, usá las distribuciones y los valores extraídos para responder.
+  El resultado cuenta conversaciones según el criterio aplicado, no menciones.
+  Si hay indeterminados, informalos aparte: no los sumes a ausentes ni presentes ni
+  presentes el número de positivos como una certeza sobre los casos ambiguos.
+  Si complete=false, informá evaluated, total y failed; los conteos son parciales,
+  nunca un total definitivo. No interpretes errores como ausencia del criterio.
+  Sus examples son solo una selección: no uses su longitud para contar. Podés citar
+  sus mensajes originales o recuperar más contexto por SQL para explicar los ejemplos.
+  Los resultados individuales no se conservan para reconsultarlos; el historial guarda el resumen.
+
+## Extracción configurable
+- analyzeConversations también extrae campos definidos por vos según la pregunta:
+  fields=[{name,description,type,categories}]. type puede ser text, text_list, number
+  o boolean; categories fija un vocabulario para texto o es null si los valores son libres.
+  Todos los campos aceptan null para lo desconocido. fields=null conserva el veredicto
+  presente/ausente/indeterminado; los counts y percentage solo corresponden a ese modo.
+- Para descubrir tópicos en todos los mensajes, usá fields con un campo topicos de tipo
+  text_list. Para preguntas que combinan características, extraé los campos necesarios
+  juntos. Una pregunta sobre motivos ya guardados puede seguir resolviéndose con SQL.
+- Cada llamada vuelve a recorrer toda la base. Reutilizá los resúmenes del historial
+  cuando alcancen para responder, pero no prometas recuperar filas de una caché.
+- El resumen cubre todo el conjunto; results muestra hasta 100 resultados individuales
+  con IDs, valores y citas. results_truncated=true indica que faltan filas; no hay
+  paginación ni un conjunto guardado para recuperar después. Para explicar un ejemplo,
+  podés consultar sus mensajes originales por ID con SQL.
+- distributions contiene frecuencias literales por campo, contando cada conversación
+  una sola vez por valor. Para tópicos, unificá variantes equivalentes antes de afirmar
+  una distribución semántica. Si dos variantes de un tópico coexisten en la misma
+  conversación, sumar sus frecuencias duplica casos. Solo calculá una agrupación si
+  tenés las filas necesarias para deduplicar IDs; no extrapoles desde una selección.
+  Si la distribución está truncada, no la presentes como completa. Para características
+  nuevas hace falta otra extracción. No reemplaces un total por diez ejemplos.
+- No se guardan nuevas etiquetas ni resultados individuales para reconsulta en SQLite.
 - Una búsqueda vacía o sin candidatos pertinentes no demuestra ausencia global.
 
 ## Continuidad y preguntas de seguimiento (multi-turno)
@@ -191,6 +232,8 @@ export type Respond = (request: ResponseCreateParamsNonStreaming) =>
 type Options = {
   databasePath?: string;
   embeddings?: EmbeddingOptions;
+  analysis?: Omit<AnalysisOptions, "databasePath" | "onProgress">;
+  onProgress?: (message: string) => void;
   maxToolCalls?: number;
   respond?: Respond;
 };
@@ -207,6 +250,9 @@ async function executeTool(name: string, args: unknown, options: Options) {
     case "queryDatabase": return queryDatabase(args, options.databasePath);
     case "searchConversations": return executeSearchConversationsTool(args, {
       ...options.embeddings, databasePath: options.databasePath,
+    });
+    case "analyzeConversations": return analyzeConversations(args, {
+      ...options.analysis, databasePath: options.databasePath, onProgress: options.onProgress,
     });
     default: throw new Error(`Herramienta desconocida: ${name}`);
   }
@@ -243,7 +289,7 @@ export async function answerQuestion(
       include: ["reasoning.encrypted_content"],
       instructions: `${instructions}\nMáximo ${maxToolCalls} llamadas; realizadas: ${calls.length}.`,
       input: [...input],
-      tools: [queryDatabaseTool, searchConversationsTool],
+      tools: [queryDatabaseTool, searchConversationsTool, analyzeConversationsTool],
       tool_choice: calls.length < maxToolCalls ? "auto" : "none",
       parallel_tool_calls: false,
     });
@@ -265,12 +311,17 @@ export async function answerQuestion(
     const args: unknown = JSON.parse(call.arguments);
     // SQL inválido vuelve como ok=false para que el modelo lo corrija; no simula resultados vacíos.
     const result = await executeTool(call.name, args, options);
+    options.onProgress?.("Preparando respuesta...");
     calls.push({ name: call.name, arguments: args, result });
 
+    // Los resultados individuales del análisis son efímeros; solo su resumen va al historial.
+    const persistedResult = call.name === "analyzeConversations"
+      ? Object.fromEntries(Object.entries(result).filter(([key]) => key !== "results"))
+      : result;
     // Guardar llamada a herramienta y su resultado juntos de forma atómica en la sesión
     appendSessionEvents(sessionId, [
       { type: "tool_call", payload: { call_id: call.call_id, name: call.name, arguments: args } },
-      { type: "tool_result", payload: { call_id: call.call_id, result } },
+      { type: "tool_result", payload: { call_id: call.call_id, result: persistedResult } },
     ], { databasePath: options.databasePath });
 
     for (const item of response.output) {
