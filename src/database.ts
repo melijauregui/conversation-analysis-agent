@@ -22,7 +22,8 @@ function configureSQLiteLibrary() {
   }
 }
 
-export const defaultDatabasePath = new URL("../data/conversations.sqlite", import.meta.url).pathname;
+export const defaultDatabasePath = process.env.DATABASE_PATH?.trim()
+  || new URL("../data/conversations.sqlite", import.meta.url).pathname;
 
 export function openDatabase(
   path = defaultDatabasePath,

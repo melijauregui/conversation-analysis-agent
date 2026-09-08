@@ -1,0 +1,11 @@
+**
+!package.json
+!bun.lock
+!tsconfig.json
+!src/
+!src/**
+!scripts/
+!scripts/**
+!tests/
+!tests/**
+!Dockerfile

@@ -1,122 +1,129 @@
 # Agente de análisis de conversaciones
 
-Agente para que un equipo de producto entienda, a escala, qué pasa en las conversaciones de un bot de soporte: temas recurrentes, fallos, frustración y qué se podría mejorar.
+Guía para configurar el proyecto, importar conversaciones y consultar al agente desde la terminal. Las decisiones técnicas y las preguntas de arquitectura están en [decisiones-arquitectura.md](decisiones-arquitectura.md).
 
-El usuario hace preguntas en lenguaje natural (y follow-ups) y el agente consulta un dataset ya analizado. No recorre las ~5.000 conversaciones en cada pregunta: primero las clasifica y las indexa; después combina **métricas sobre etiquetas** con **búsqueda en el texto**.
+## 1. Configurar las variables de entorno
 
-## Cómo funciona
+Ejecutá todos los comandos desde la raíz del proyecto. Si todavía no tenés `.env`, crealo a partir del ejemplo:
 
-1. **Importación.** Se leen las conversaciones del JSON, un modelo las etiqueta (resolución, repetición, calidad del asistente, motivos de contacto) y se guardan en SQLite junto con índices de texto y vectores.
-2. **Pregunta.** Un orquestador (LLM) elige herramientas:
-   - **SQL** para conteos, porcentajes, rankings y filtros sobre etiquetas ya guardadas.
-   - **Búsqueda** cuando hace falta leer mensajes (temas, frustración, errores del asistente).
-3. **Respuesta.** Debe apoyarse en evidencia (IDs de conversación y, si describe contenido, mensajes reales). La búsqueda devuelve candidatos, no el corpus entero: si piden un porcentaje global de un tema nuevo, el agente debe decir que no puede garantizarlo sin un análisis exhaustivo.
+```bash
+cp .env.example .env
+```
 
-La interacción es por **CLI**. Cada `bun run ask` es una pregunta; el historial entre preguntas de sesión aún no está persistido.
+Completá `OPENAI_API_KEY` en `.env`. Si el archivo ya existe, conservá sus valores.
 
-## Stack
+- `OPENAI_API_KEY`: obligatoria para importar, preguntar y realizar búsquedas vectoriales o híbridas. También se necesita para los tests que llaman a la API.
+- `DATABASE_PATH`: opcional; por defecto, `data/conversations.sqlite`. Permite elegir otra base tanto para importar como para consultar. Las rutas relativas se resuelven desde el directorio de ejecución (`/app` en Docker).
+- `OPENAI_MODEL`: opcional; por defecto, `gpt-5.6-luna`. Se usa para clasificar y responder preguntas.
+- `OPENAI_EMBEDDING_MODEL`: opcional; por defecto, `text-embedding-3-small`. También admite `text-embedding-3-large`.
+- `OPENAI_EMBEDDING_DIMENSIONS`: opcional; por defecto, 1536 para el modelo `small` o 3072 para `large`. Debe ser un entero entre 1 y el máximo del modelo. Usá la misma configuración al importar y consultar; si la cambiás, volvé a importar el dataset.
+- `SQLITE_LIBRARY_PATH`: opcional, solo para ejecución local en macOS si SQLite está fuera de las rutas habituales de Homebrew. Debe apuntar a `libsqlite3.dylib`.
+- `BENCH_DATABASE_PATH`: opcional para `test:performance`; si no se define, usa la base indicada por `DATABASE_PATH` o la base por defecto.
 
-| Pieza | Para qué |
-| --- | --- |
-| **Bun** (≥ 1.4.2) + TypeScript | Runtime y tests. No hace falta Node ni Python. |
-| **SQLite** | Una base local con conversaciones, etiquetas y búsqueda. |
-| **FTS5** | Búsqueda por palabras (tipo “passkey”). |
-| **sqlite-vec** | Búsqueda semántica (parecido de significado, no solo palabras exactas). |
-| **OpenAI** | Clasificación, embeddings y el modelo que orquesta la pregunta. |
-| **Zod** | Validar JSON de entrada y salidas estructuradas del modelo. |
+Los scripts `test:integration` y `test:performance` activan automáticamente `RUN_DEVELOPMENT_INTEGRATION=1` y `RUN_PERFORMANCE=1`, respectivamente; no hace falta agregarlas al `.env`.
 
-En macOS el SQLite del sistema no carga extensiones: `brew install sqlite`. En Apple Silicon se usa `/opt/homebrew`; en Intel, `/usr/local`. Si está en otro lado, `SQLITE_LIBRARY_PATH` apunta al `.dylib`.
+## 2. Preparar el entorno
 
-## Cómo correrlo
+### Con Docker
+
+Requiere Docker con Compose y Docker iniciado. Construí la imagen:
+
+```bash
+docker compose build
+```
+
+Para ejecutar cualquiera de los comandos de Bun de esta guía dentro del contenedor, anteponé `docker compose run --rm agent`. Por ejemplo:
+
+```bash
+docker compose run --rm agent bun run data:import
+```
+
+Volvé a construir la imagen cuando cambies el código o las dependencias. Los cambios en `.env` no requieren reconstruirla. Los archivos de `data/` y `reports/` se conservan en tu máquina.
+
+### Localmente
+
+Requiere Bun ≥ 1.4.2. Si ya tenés una versión anterior, actualizala con `bun upgrade`.
+
+En macOS, instalá también SQLite:
+
+```bash
+brew install sqlite
+```
+
+Instalá las dependencias:
 
 ```bash
 bun install
 ```
 
-Creá un `.env` con `OPENAI_API_KEY`. Opcional: `OPENAI_MODEL`, `OPENAI_EMBEDDING_MODEL` (por defecto `text-embedding-3-small`).
+## 3. Importar las conversaciones
 
-Actualizar Bun: `bun upgrade`.
-
-### 1. Importar el dataset
+Antes de consultar al agente, dejá `challenge-dataset.json` en la raíz y ejecutá:
 
 ```bash
 bun run data:import
 ```
 
-Lee `challenge-dataset.json` y escribe `data/conversations.sqlite` (archivo local, no va a Git). Otro archivo:
+Con Docker:
+
+```bash
+docker compose run --rm agent bun run data:import
+```
+
+La ingesta lee el dataset y guarda el resultado en la base configurada. Llama a OpenAI, tiene costo y puede tardar. Si falla, repetí el comando: reutiliza las conversaciones completas cuando coinciden los datos y la configuración.
+
+Para importar otro archivo, pasá su ruta. En Docker, guardalo dentro de `data/` para que el contenedor pueda leerlo:
 
 ```bash
 bun run data:import data/development.json
 ```
 
-La clasificación llama a la API y puede tardar. Si un lote falla, no se guarda; al reintentar se reutiliza lo que ya está completo.
+Opciones de ingesta:
 
-La ingesta usa `AsyncQueuer` de TanStack Pacer: 5 conversaciones por request, hasta 100 lotes concurrentes y `reasoning.effort: "low"`. Cada lugar libre inicia el siguiente lote sin esperar a los demás. El límite abarca clasificación, embeddings y guardado.
+- `--database RUTA`: base de destino; tiene prioridad sobre `DATABASE_PATH`.
+- `--batch-size N`: conversaciones por lote; por defecto, 5.
+- `--concurrency N`: máximo de lotes simultáneos; por defecto, 100.
 
-Para repetir la medición o ajustar los parámetros:
+Ejemplo con una base separada:
 
 ```bash
-bun run data:import challenge-2500.json --batch-size 5 --concurrency 100
+bun run data:import data/development.json --database data/development.sqlite --batch-size 5 --concurrency 10
 ```
 
+El archivo debe contener un objeto con un arreglo `conversations`. Cada conversación requiere `id`, `metadata` y un arreglo no vacío `messages`, con `role` (`user` o `assistant`) y `content`.
 
-La ingesta usa los reintentos de `AsyncQueuer`: ante un 429 temporal reintenta el lote hasta 8 intentos, esperando al menos 60 segundos (o `Retry-After` si es mayor), más hasta 5 segundos aleatorios para escalonar los reintentos. El lote conserva su lugar de concurrencia mientras espera. 
+Si ya tenés una base procesada, podés omitir la ingesta y seleccionar su ruta en `.env`:
 
+```dotenv
+DATABASE_PATH=data/conversations-5000.sqlite
+```
 
-### 2. Preguntar al agente
+## 4. Ejecutar el agente
+
+Abrí el chat interactivo:
+
+```bash
+bun run chat
+```
+
+Con Docker:
+
+```bash
+docker compose run --rm agent
+```
+
+Podés hacer preguntas de seguimiento dentro del chat. Para salir, usá `/exit` o Ctrl+C.
+
+Para una pregunta puntual:
 
 ```bash
 bun run ask "¿Cuántas conversaciones quedaron resueltas?"
-bun run ask "Mostrame los 5 tópicos principales, su cantidad y porcentaje de resolución"
-bun run ask "Mostrame conversaciones sobre passkeys que estén resueltas"
 ```
 
-En la terminal se ven las herramientas que usó el modelo y la respuesta final.
+## Scripts disponibles
 
-### 3. Búsqueda directa (sin el orquestador)
+### Uso del proyecto
 
-Útil para inspeccionar el índice, no para métricas globales.
+- `bun run chat`: abre el chat interactivo.
+- `bun run data:import [ARCHIVO]`: importa el dataset; admite las opciones de la sección de ingesta.
 
-```bash
-bun run search:text "passkey" 10
-bun run search:vector "problemas para iniciar sesión sin contraseña" 10
-bun run search:hybrid "problemas para configurar o usar passkeys" 5 passkey passkeys
-```
-
-- **Texto:** palabras literales (todas deben aparecer).
-- **Vector:** necesita API (embedding de la consulta).
-- **Híbrido:** mezcla ambos. Palabras clave opcionales al final; sin ellas, solo vector.
-
-### 4. Tests
-
-```bash
-bun test
-bun run typecheck
-bun run test:integration
-```
-
-Los tests normales no gastan API. Los de integración sí (`OPENAI_API_KEY`) y usan la base de development en solo lectura. Un caso concreto:
-
-```bash
-bun run test:integration --test-name-pattern 'moneda ya indicada'
-```
-
-## Decisiones de diseño
-
-**Clasificar una vez, consultar muchas.** Recorrer 5.000 hilos con un LLM en cada pregunta no escala ni es comparable entre corridas. En la importación se guardan etiquetas (resolución, calidad, motivos) y también embeddings de cada conversación. En cada pregunta el modelo no relee el corpus: elige entre dos herramientas.
-
-**Dos herramientas.**
-- **Búsqueda** (híbrida): combina texto (palabras exactas) y vectores (parecido de significado). Sirve para temas, fallos o palabras claves que hay que ver en los mensajes. Devuelve candidatos; el modelo debe leerlos antes de afirmar. Un acotado número de resultados no es un porcentaje del dataset.
-- **SQL:** el modelo escribe la query; la app la ejecuta en solo lectura, con esquema acotado y límites de tiempo y filas. Sirve para conteos, tasas y filtros sobre etiquetas ya guardadas. 
-
-**SQL en un proceso separado.** Una query generada por el modelo puede ser válida y de solo lectura, pero muy costosa. Como SQLite se ejecuta de forma sincrónica, separarla permite mantener disponible el proceso principal y terminar el proceso SQL si supera los 5 segundos; un temporizador en el mismo proceso no podría interrumpir una consulta bloqueante. El costo es crear un proceso y abrir una conexión por llamada.
-
-**Motivos exactos vs tópicos.** Los motivos se guardan tal cual. Si piden “tópicos”, el modelo lista los motivos, propone un mapeo revisable y recién ahí calcula métricas. Agrupar labels no es releer todo el corpus.
-
-## Trade-offs
-
-| Elegimos | En lugar de | Por qué |
-| --- | --- | --- |
-| SQLite local + CLI | App web / Elasticsearch / Postgres | Menos infra para el challenge; una máquina alcanza para este tamaño. |
-| Etiquetas + búsqueda | Solo RAG en cada pregunta | Métricas estables y baratas; RAG solo donde hace falta el texto. |
-| Candidatos, no exhaustivo | Clasificar on-the-fly todo el corpus | Latencia y costo; se declara el límite de cobertura. |

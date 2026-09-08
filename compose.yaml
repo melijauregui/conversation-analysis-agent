@@ -1,0 +1,14 @@
+services:
+  agent:
+    build: .
+    env_file:
+      - .env
+    environment:
+      TERM: xterm-256color
+    init: true
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./data:/app/data
+      - ./reports:/app/reports
+      - ./challenge-dataset.json:/app/challenge-dataset.json:ro

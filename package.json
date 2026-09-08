@@ -34,6 +34,7 @@
     "eval:score": "bun ./scripts/phase0.ts evaluate",
     "test": "bun test",
     "test:integration": "RUN_DEVELOPMENT_INTEGRATION=1 bun test tests/development-integration.test.ts",
+    "test:performance": "RUN_PERFORMANCE=1 bun test tests/performance.test.ts",
     "typecheck": "tsc --noEmit",
     "eval:packets": "bun ./scripts/phase0.ts packets"
   }
